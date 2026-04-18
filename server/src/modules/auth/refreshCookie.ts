@@ -5,21 +5,14 @@ export const refreshCookieName = "refresh_token";
 
 function crossOriginAuthCookies(): boolean {
   if (env.NODE_ENV !== "production") return false;
+  // Split client/API on Vercel is the common case — always use third-party cookie rules.
+  if (process.env.VERCEL === "1") return true;
   try {
     const frontHost = new URL(env.FRONTEND_URL).hostname;
     const apiHost = new URL(env.SERVER_PUBLIC_URL).hostname;
-    if (frontHost !== apiHost) return true;
-    // API on Vercel but FRONTEND_URL still default — split client/API hosts need `SameSite=None`.
-    if (
-      process.env.VERCEL === "1" &&
-      apiHost.endsWith(".vercel.app") &&
-      frontHost === "localhost"
-    ) {
-      return true;
-    }
-    return false;
+    return frontHost !== apiHost;
   } catch {
-    return process.env.VERCEL === "1";
+    return false;
   }
 }
 

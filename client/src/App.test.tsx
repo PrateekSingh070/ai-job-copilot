@@ -84,7 +84,7 @@ describe("Frontend auth + create job flow", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
-    await screen.findByText(/welcome, demo/i);
+    await screen.findByText(/welcome back, demo/i);
 
     fireEvent.change(screen.getByPlaceholderText("Company"), {
       target: { value: "Acme" },

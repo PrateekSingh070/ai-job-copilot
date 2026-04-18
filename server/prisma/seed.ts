@@ -19,25 +19,29 @@ async function main() {
     },
   });
 
-  await prisma.jobApplication.createMany({
-    data: [
-      {
-        userId: user.id,
-        company: "Acme Labs",
-        role: "Frontend Engineer Intern",
-        status: "APPLIED",
-        location: "Remote",
-      },
-      {
-        userId: user.id,
-        company: "Nova Systems",
-        role: "Full Stack Developer",
-        status: "INTERVIEW",
-        location: "Bengaluru",
-      },
-    ],
-    skipDuplicates: true,
+  const existingJobs = await prisma.jobApplication.count({
+    where: { userId: user.id },
   });
+  if (existingJobs === 0) {
+    await prisma.jobApplication.createMany({
+      data: [
+        {
+          userId: user.id,
+          company: "Acme Labs",
+          role: "Frontend Engineer Intern",
+          status: "APPLIED",
+          location: "Remote",
+        },
+        {
+          userId: user.id,
+          company: "Nova Systems",
+          role: "Full Stack Developer",
+          status: "INTERVIEW",
+          location: "Bengaluru",
+        },
+      ],
+    });
+  }
 }
 
 main()

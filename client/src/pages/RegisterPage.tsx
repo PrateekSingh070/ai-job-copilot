@@ -3,6 +3,18 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../providers/AuthProvider";
 import { API_BASE_URL } from "../lib/config";
 import { api } from "../lib/api";
+import {
+  authBackdropClass,
+  authCardClass,
+  authErrorClass,
+  authLinkClass,
+  authNoticeClass,
+  authPageClass,
+  buttonPrimaryClass,
+  inputClass,
+  labelClass,
+  oauthLinkClass,
+} from "../ui/theme";
 
 type OAuthStatus = {
   googleConfigured: boolean;
@@ -50,13 +62,25 @@ export function RegisterPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-10">
-      <div className="mx-auto w-full max-w-md rounded-xl bg-white p-6 shadow">
-        <h1 className="text-2xl font-bold text-slate-900">Create account</h1>
-        <div className="mt-4 grid gap-2">
+    <main className={authPageClass}>
+      <div className={authBackdropClass} aria-hidden />
+      <div className={authCardClass}>
+        <header className="mb-8">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-400/90">
+            Job Copilot
+          </p>
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-zinc-50">
+            Create account
+          </h1>
+          <p className="mt-1 text-sm text-zinc-500">
+            Start tracking roles and generating tailored materials in minutes.
+          </p>
+        </header>
+
+        <div className="grid gap-2">
           {oauthStatus.googleConfigured ? (
             <a
-              className="block w-full rounded border border-slate-300 bg-white px-4 py-2 text-center text-sm font-medium text-slate-800 shadow-sm transition hover:bg-slate-50"
+              className={oauthLinkClass}
               href={`${API_BASE_URL}/auth/oauth/google`}
             >
               Continue with Google
@@ -64,7 +88,7 @@ export function RegisterPage() {
           ) : null}
           {oauthStatus.githubConfigured ? (
             <a
-              className="block w-full rounded border border-slate-300 bg-white px-4 py-2 text-center text-sm font-medium text-slate-800 shadow-sm transition hover:bg-slate-50"
+              className={oauthLinkClass}
               href={`${API_BASE_URL}/auth/oauth/github`}
             >
               Continue with GitHub
@@ -72,59 +96,65 @@ export function RegisterPage() {
           ) : null}
         </div>
         {!oauthStatus.googleConfigured && !oauthStatus.githubConfigured ? (
-          <p className="mt-3 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-            Social signup is not configured yet. Use email/password for now.
+          <p className={authNoticeClass}>
+            Social signup is not configured yet. Use email and password for now.
           </p>
         ) : null}
-        <p className="mt-3 text-center text-xs text-slate-500">
+
+        <p className="mt-4 text-center text-xs text-zinc-500">
           or register with email
         </p>
-        <form className="mt-4 space-y-4" onSubmit={onSubmit}>
+
+        <form className="mt-5 space-y-4" onSubmit={onSubmit}>
           <label className="block">
-            <span className="mb-1 block text-sm text-slate-700">Name</span>
+            <span className={labelClass}>Name</span>
             <input
               data-testid="register-name"
-              className="w-full rounded border border-slate-300 px-3 py-2"
+              className={inputClass}
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
+              autoComplete="name"
             />
           </label>
           <label className="block">
-            <span className="mb-1 block text-sm text-slate-700">Email</span>
+            <span className={labelClass}>Email</span>
             <input
               data-testid="register-email"
-              className="w-full rounded border border-slate-300 px-3 py-2"
+              className={inputClass}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               type="email"
               required
+              autoComplete="email"
             />
           </label>
           <label className="block">
-            <span className="mb-1 block text-sm text-slate-700">Password</span>
+            <span className={labelClass}>Password</span>
             <input
               data-testid="register-password"
-              className="w-full rounded border border-slate-300 px-3 py-2"
+              className={inputClass}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               type="password"
               required
+              autoComplete="new-password"
             />
           </label>
-          {error ? <p className="text-sm text-red-600">{error}</p> : null}
+          {error ? <p className={authErrorClass}>{error}</p> : null}
           <button
             data-testid="register-submit"
-            className="w-full rounded bg-brand-600 px-4 py-2 font-medium text-white disabled:opacity-60"
+            className={`${buttonPrimaryClass} w-full`}
             disabled={submitting}
             type="submit"
           >
-            {submitting ? "Creating..." : "Create account"}
+            {submitting ? "Creating…" : "Create account"}
           </button>
         </form>
-        <p className="mt-4 text-sm text-slate-600">
+
+        <p className="mt-6 text-center text-sm text-zinc-500">
           Already have an account?{" "}
-          <Link className="text-brand-600 underline" to="/login">
+          <Link className={authLinkClass} to="/login">
             Sign in
           </Link>
         </p>

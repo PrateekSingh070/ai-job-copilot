@@ -10,21 +10,14 @@ import type {
   JobApplication,
   JobStatus,
 } from "../types";
+import {
+  buttonPrimaryClass,
+  buttonSecondaryClass,
+  inputClass,
+  statusTone,
+} from "../ui/theme.js";
 
 const statuses: JobStatus[] = ["APPLIED", "INTERVIEW", "OFFER", "REJECTED"];
-const inputClass =
-  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200";
-const buttonPrimaryClass =
-  "rounded-lg bg-brand-600 px-3 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60";
-const buttonSecondaryClass =
-  "rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60";
-
-const statusTone: Record<JobStatus, string> = {
-  APPLIED: "bg-sky-100 text-sky-700",
-  INTERVIEW: "bg-violet-100 text-violet-700",
-  OFFER: "bg-emerald-100 text-emerald-700",
-  REJECTED: "bg-rose-100 text-rose-700",
-};
 
 function extractApiErrorMessage(error: unknown, fallback: string): string {
   if (!error || typeof error !== "object") return fallback;
@@ -803,16 +796,25 @@ export function DashboardPage() {
   }, [companyFilter, statusFilter, starredFilter]);
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-white">
-      <header className="border-b border-slate-200/80 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4 sm:py-4">
+    <main className="relative min-h-screen bg-zinc-950 text-zinc-100">
+      <div
+        className="pointer-events-none fixed inset-0 -z-10 opacity-90"
+        aria-hidden
+      >
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_100%_70%_at_50%_-20%,rgba(34,211,238,0.09),transparent_55%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_100%_0%,rgba(45,212,191,0.06),transparent_50%)]" />
+      </div>
+      <header className="sticky top-0 z-20 border-b border-zinc-800/80 bg-zinc-950/75 backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
           <div className="min-w-0">
-            <h1 className="text-lg font-semibold text-slate-900 sm:text-xl">
-              AI Job Application Copilot
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-400/90">
+              Job Copilot
+            </p>
+            <h1 className="mt-0.5 text-lg font-semibold tracking-tight text-white sm:text-xl">
+              Welcome back, {user?.name}
             </h1>
-            <p className="mt-0.5 text-xs text-slate-600 sm:text-sm">
-              Welcome, {user?.name} - track your pipeline and generate better
-              applications faster.
+            <p className="mt-0.5 text-xs text-zinc-400 sm:text-sm">
+              Pipeline, AI workspace, and exports in one calm surface.
             </p>
           </div>
           <button
@@ -820,18 +822,18 @@ export function DashboardPage() {
             className={`${buttonSecondaryClass} shrink-0 self-start sm:self-auto`}
             onClick={() => logout()}
           >
-            Logout
+            Sign out
           </button>
         </div>
       </header>
 
-      <section className="mx-auto max-w-7xl px-3 py-4 sm:px-4 sm:py-6">
-        <div className="mb-2">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Pipeline Snapshot
+      <section className="mx-auto max-w-7xl px-3 py-5 sm:px-6 sm:py-8">
+        <div className="mb-3">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
+            Snapshot
           </h2>
-          <p className="text-xs text-slate-500">
-            Key conversion and resume-performance signals at a glance.
+          <p className="mt-0.5 text-xs text-zinc-500">
+            Conversion and resume signals at a glance.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 xl:grid-cols-6">
@@ -866,26 +868,26 @@ export function DashboardPage() {
           />
         </div>
 
-        <div className="mt-4 inline-flex w-full rounded-xl border border-slate-200 bg-white p-1 shadow-sm sm:mt-6 sm:w-auto">
+        <div className="mt-4 inline-flex w-full rounded-2xl border border-zinc-800/90 bg-zinc-900/60 p-1 shadow-lift sm:mt-6 sm:w-auto">
           <button
-            className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition sm:flex-none sm:px-4 ${
+            className={`flex-1 rounded-xl px-3 py-2.5 text-sm font-medium transition sm:flex-none sm:px-5 ${
               activeTab === "jobs"
-                ? "bg-brand-600 text-white shadow-sm"
-                : "text-slate-700 hover:bg-slate-100"
+                ? "bg-gradient-to-r from-cyan-500 to-teal-500 text-zinc-950 shadow-md shadow-cyan-950/40"
+                : "text-zinc-400 hover:bg-zinc-800/80 hover:text-zinc-200"
             }`}
             onClick={() => setActiveTab("jobs")}
           >
-            Job Tracker
+            Tracker
           </button>
           <button
-            className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition sm:flex-none sm:px-4 ${
+            className={`flex-1 rounded-xl px-3 py-2.5 text-sm font-medium transition sm:flex-none sm:px-5 ${
               activeTab === "ai"
-                ? "bg-brand-600 text-white shadow-sm"
-                : "text-slate-700 hover:bg-slate-100"
+                ? "bg-gradient-to-r from-cyan-500 to-teal-500 text-zinc-950 shadow-md shadow-cyan-950/40"
+                : "text-zinc-400 hover:bg-zinc-800/80 hover:text-zinc-200"
             }`}
             onClick={() => setActiveTab("ai")}
           >
-            AI Workspace
+            AI workspace
           </button>
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -917,17 +919,17 @@ export function DashboardPage() {
         </div>
 
         {!onboardingDismissed ? (
-          <div className="mt-4 rounded-xl border border-brand-200 bg-brand-50 p-3 text-sm text-brand-900 sm:mt-6">
-            <p className="font-semibold">Guided demo (under 60 seconds)</p>
-            <div className="mt-2 flex flex-wrap gap-2 text-xs">
-              <span className="rounded-full border border-brand-300 bg-white/60 px-2 py-1">
-                1. Import a role
+          <div className="mt-4 rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-4 text-sm text-zinc-200 sm:mt-6">
+            <p className="font-semibold text-white">Quick start</p>
+            <div className="mt-2 flex flex-wrap gap-2 text-xs text-zinc-400">
+              <span className="rounded-full border border-zinc-700/80 bg-zinc-900/60 px-2.5 py-1">
+                1 · Import role
               </span>
-              <span className="rounded-full border border-brand-300 bg-white/60 px-2 py-1">
-                2. Run AI fit + draft
+              <span className="rounded-full border border-zinc-700/80 bg-zinc-900/60 px-2.5 py-1">
+                2 · AI fit + draft
               </span>
-              <span className="rounded-full border border-brand-300 bg-white/60 px-2 py-1">
-                3. Export packet
+              <span className="rounded-full border border-zinc-700/80 bg-zinc-900/60 px-2.5 py-1">
+                3 · Export
               </span>
             </div>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -962,15 +964,15 @@ export function DashboardPage() {
         {activeTab === "jobs" ? (
           <section className="mt-4 space-y-4 sm:mt-6 sm:space-y-6">
             <div>
-              <h3 className="text-sm font-semibold text-slate-800">
+              <h3 className="text-sm font-semibold text-zinc-100">
                 Capture Applications
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-zinc-500">
                 Add manually or parse a job URL, then confirm import quality.
               </p>
             </div>
             <form
-              className="grid gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:gap-3 sm:p-4 md:grid-cols-4"
+              className="grid gap-2 rounded-xl border border-zinc-800/80 bg-zinc-900/50 p-3 shadow-sm sm:gap-3 sm:p-4 md:grid-cols-4"
               onSubmit={(e) => {
                 e.preventDefault();
                 createJob.mutate();
@@ -1028,12 +1030,12 @@ export function DashboardPage() {
               >
                 {createJob.isPending ? "Adding..." : "Add Job"}
               </button>
-              <p className="text-xs text-slate-500 md:col-span-4">
+              <p className="text-xs text-zinc-500 md:col-span-4">
                 Tip: Add each application as soon as you apply so your funnel
                 metrics stay accurate.
               </p>
               {createJob.isError ? (
-                <p className="rounded border border-rose-300 bg-rose-50 px-2 py-1 text-xs text-rose-700 md:col-span-4">
+                <p className="rounded border border-rose-500/35 bg-rose-950/40 px-2 py-1 text-xs text-rose-200 md:col-span-4">
                   {extractApiErrorMessage(
                     createJob.error,
                     "Could not add job. Please try again.",
@@ -1041,14 +1043,14 @@ export function DashboardPage() {
                 </p>
               ) : null}
               {duplicateWarning ? (
-                <p className="rounded border border-amber-300 bg-amber-50 px-2 py-1 text-xs text-amber-700 md:col-span-4">
+                <p className="rounded border border-amber-500/35 bg-amber-950/35 px-2 py-1 text-xs text-amber-200 md:col-span-4">
                   Duplicate warning: {duplicateWarning}
                 </p>
               ) : null}
             </form>
 
             <form
-              className="grid gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:gap-3 sm:p-4 md:grid-cols-[1fr_auto]"
+              className="grid gap-2 rounded-xl border border-zinc-800/80 bg-zinc-900/50 p-3 shadow-sm sm:gap-3 sm:p-4 md:grid-cols-[1fr_auto]"
               onSubmit={(e) => {
                 e.preventDefault();
                 importPreviewMutation.mutate();
@@ -1070,7 +1072,7 @@ export function DashboardPage() {
               </button>
             </form>
             {importPreviewMutation.isError ? (
-              <p className="rounded border border-rose-300 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+              <p className="rounded border border-rose-500/35 bg-rose-950/40 px-3 py-2 text-xs text-rose-200">
                 {extractApiErrorMessage(
                   importPreviewMutation.error,
                   "Could not parse this URL.",
@@ -1079,20 +1081,20 @@ export function DashboardPage() {
             ) : null}
 
             {importPreview ? (
-              <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+              <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/50 p-3 shadow-sm sm:p-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-semibold text-slate-800">
+                  <p className="text-sm font-semibold text-zinc-100">
                     Import review
                   </p>
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                  <span className="rounded-full bg-zinc-800/70 px-2 py-0.5 text-xs text-zinc-400">
                     Confidence {Math.round(importPreview.confidence * 100)}%
                   </span>
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-zinc-500">
                     Signals: {importPreview.signals.join(", ") || "n/a"}
                   </span>
                 </div>
                 {importPreview.duplicate ? (
-                  <p className="mt-2 rounded border border-amber-300 bg-amber-50 px-2 py-1 text-xs text-amber-700">
+                  <p className="mt-2 rounded border border-amber-500/35 bg-amber-950/35 px-2 py-1 text-xs text-amber-200">
                     Similar job found: {importPreview.duplicate.company} -{" "}
                     {importPreview.duplicate.role}
                   </p>
@@ -1154,7 +1156,7 @@ export function DashboardPage() {
                   placeholder="Job description"
                 />
                 {importUrlMutation.isError ? (
-                  <p className="mt-2 rounded border border-rose-300 bg-rose-50 px-2 py-1 text-xs text-rose-700">
+                  <p className="mt-2 rounded border border-rose-500/35 bg-rose-950/40 px-2 py-1 text-xs text-rose-200">
                     {extractApiErrorMessage(
                       importUrlMutation.error,
                       "Could not save imported job.",
@@ -1164,13 +1166,13 @@ export function DashboardPage() {
               </div>
             ) : null}
 
-            <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+            <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/50 p-3 shadow-sm sm:p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-800">
+                  <h3 className="text-sm font-semibold text-zinc-100">
                     Internet jobs + internships for your profile
                   </h3>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-zinc-500">
                     Ranked using your resume and job history, refreshed from
                     public openings across the internet.
                   </p>
@@ -1187,7 +1189,7 @@ export function DashboardPage() {
                 </button>
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                <label className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-2 py-1 text-slate-600">
+                <label className="inline-flex items-center gap-1 rounded-full border border-zinc-800/80 px-2 py-1 text-zinc-400">
                   <input
                     type="checkbox"
                     checked={internshipsOnly}
@@ -1195,7 +1197,7 @@ export function DashboardPage() {
                   />
                   Internships only
                 </label>
-                <label className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-2 py-1 text-slate-600">
+                <label className="inline-flex items-center gap-1 rounded-full border border-zinc-800/80 px-2 py-1 text-zinc-400">
                   <input
                     type="checkbox"
                     checked={remoteOnly}
@@ -1204,26 +1206,26 @@ export function DashboardPage() {
                   Remote only
                 </label>
                 {openingsQuery.data?.profileKeywords?.length ? (
-                  <span className="text-slate-500">
+                  <span className="text-zinc-500">
                     Profile signals:{" "}
                     {openingsQuery.data.profileKeywords.slice(0, 6).join(", ")}
                   </span>
                 ) : null}
               </div>
               {openingsQuery.isLoading ? (
-                <p className="mt-2 text-sm text-slate-500">
+                <p className="mt-2 text-sm text-zinc-500">
                   Loading internet openings...
                 </p>
               ) : null}
               {openingsQuery.isError ? (
-                <p className="mt-2 rounded border border-rose-300 bg-rose-50 px-2 py-1 text-xs text-rose-700">
+                <p className="mt-2 rounded border border-rose-500/35 bg-rose-950/40 px-2 py-1 text-xs text-rose-200">
                   Could not load openings right now. Please retry.
                 </p>
               ) : null}
               {(openingsQuery.data?.warnings ?? []).map((warning) => (
                 <p
                   key={warning}
-                  className="mt-2 rounded border border-amber-300 bg-amber-50 px-2 py-1 text-xs text-amber-700"
+                  className="mt-2 rounded border border-amber-500/35 bg-amber-950/35 px-2 py-1 text-xs text-amber-200"
                 >
                   {warning}
                 </p>
@@ -1231,7 +1233,7 @@ export function DashboardPage() {
               {!openingsQuery.isLoading &&
               !openingsQuery.isError &&
               discoveredOpenings.length === 0 ? (
-                <p className="mt-2 text-sm text-slate-500">
+                <p className="mt-2 text-sm text-zinc-500">
                   No openings matched current filters yet.
                 </p>
               ) : null}
@@ -1239,35 +1241,35 @@ export function DashboardPage() {
                 {discoveredOpenings.slice(0, 10).map((opening) => (
                   <article
                     key={`${opening.source}-${opening.url}`}
-                    className="rounded-lg border border-slate-200 bg-slate-50 p-2.5"
+                    className="rounded-lg border border-zinc-800/80 bg-zinc-900/40 p-2.5"
                   >
                     <div className="flex flex-wrap items-center gap-1">
                       <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-semibold text-brand-700">
                         Match {opening.matchScore}%
                       </span>
                       {opening.isInternship ? (
-                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-200">
                           Internship
                         </span>
                       ) : null}
                       {opening.isRemote ? (
-                        <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-semibold text-sky-700">
+                        <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-semibold text-sky-200">
                           Remote
                         </span>
                       ) : null}
                     </div>
-                    <p className="mt-1 text-sm font-semibold text-slate-800">
+                    <p className="mt-1 text-sm font-semibold text-zinc-100">
                       {opening.title}
                     </p>
-                    <p className="text-xs text-slate-600">
+                    <p className="text-xs text-zinc-400">
                       {opening.company} · {opening.location || "Location TBD"} ·{" "}
                       {opening.source}
                     </p>
-                    <p className="mt-1 text-xs text-slate-500">
+                    <p className="mt-1 text-xs text-zinc-500">
                       {opening.snippet}
                     </p>
                     {opening.matchedKeywords.length ? (
-                      <p className="mt-1 text-[11px] text-slate-500">
+                      <p className="mt-1 text-[11px] text-zinc-500">
                         Matched:{" "}
                         {opening.matchedKeywords.slice(0, 5).join(", ")}
                       </p>
@@ -1277,7 +1279,7 @@ export function DashboardPage() {
                         href={opening.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="rounded border border-slate-300 px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100"
+                        className="rounded border border-zinc-700/70 px-2 py-1 text-[11px] font-medium text-zinc-300 hover:bg-zinc-800"
                       >
                         Open listing
                       </a>
@@ -1297,8 +1299,8 @@ export function DashboardPage() {
               </div>
             </div>
 
-            <div className="sticky top-0 z-20 -mx-3 border-b border-slate-200/90 bg-slate-50/95 px-3 py-2 shadow-sm backdrop-blur-sm sm:static sm:mx-0 sm:rounded-xl sm:border sm:bg-white sm:p-3 sm:shadow-sm">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <div className="sticky top-0 z-20 -mx-3 border-b border-zinc-800/90 bg-zinc-950/90 px-3 py-2 shadow-sm backdrop-blur-sm sm:static sm:mx-0 sm:rounded-xl sm:border sm:border-zinc-800/80 sm:bg-zinc-900/60 sm:p-3 sm:shadow-sm">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
                 Filter + Export
               </p>
               <div className="flex flex-wrap items-center gap-2">
@@ -1352,7 +1354,7 @@ export function DashboardPage() {
                 >
                   Clear filters
                 </button>
-                <span className="w-full text-xs font-medium text-slate-500 sm:ml-auto sm:w-auto">
+                <span className="w-full text-xs font-medium text-zinc-500 sm:ml-auto sm:w-auto">
                   Showing {(jobs ?? []).length} jobs on this page
                 </span>
               </div>
@@ -1360,45 +1362,45 @@ export function DashboardPage() {
 
             {!presentationMode || showSecondaryPanels ? (
               <>
-                <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+                <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/50 p-3 shadow-sm sm:p-4">
                   <button
                     type="button"
                     className="flex w-full items-center justify-between text-left md:hidden"
                     onClick={() => setActivityOpen((o) => !o)}
                     aria-expanded={activityOpen}
                   >
-                    <span className="font-semibold text-slate-800">
+                    <span className="font-semibold text-zinc-100">
                       Recent activity
                     </span>
-                    <span className="text-slate-500" aria-hidden>
+                    <span className="text-zinc-500" aria-hidden>
                       {activityOpen ? "▲" : "▼"}
                     </span>
                   </button>
-                  <h3 className="hidden font-semibold text-slate-800 md:block">
+                  <h3 className="hidden font-semibold text-zinc-100 md:block">
                     Recent activity
                   </h3>
                   <div
                     className={`mt-2 ${activityOpen || activityQuery.isLoading ? "block" : "hidden md:block"}`}
                   >
                     {activityQuery.isLoading ? (
-                      <p className="text-sm text-slate-500">Loading…</p>
+                      <p className="text-sm text-zinc-500">Loading…</p>
                     ) : (
                       <ul className="space-y-2 text-sm">
                         {(activityQuery.data?.items ?? []).length === 0 ? (
-                          <li className="text-slate-500">No activity yet.</li>
+                          <li className="text-zinc-500">No activity yet.</li>
                         ) : (
                           activityQuery.data?.items.map((item) => (
                             <li
                               key={`${item.kind}-${item.id}`}
-                              className="flex flex-col rounded-lg border border-slate-200 bg-slate-50 p-2"
+                              className="flex flex-col rounded-lg border border-zinc-800/80 bg-zinc-900/40 p-2"
                             >
-                              <span className="font-medium text-slate-800">
+                              <span className="font-medium text-zinc-100">
                                 {item.title}
                               </span>
-                              <span className="text-xs text-slate-500">
+                              <span className="text-xs text-zinc-500">
                                 {item.subtitle}
                               </span>
-                              <span className="text-xs text-slate-400">
+                              <span className="text-xs text-zinc-500">
                                 {new Date(item.at).toLocaleString()}
                               </span>
                             </li>
@@ -1410,22 +1412,22 @@ export function DashboardPage() {
                 </div>
 
                 <div className="grid gap-3 lg:grid-cols-2">
-                  <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
-                    <h3 className="font-semibold text-slate-800">
+                  <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/50 p-3 shadow-sm sm:p-4">
+                    <h3 className="font-semibold text-zinc-100">
                       Application reminders
                     </h3>
                     <ul className="mt-2 space-y-2 text-sm">
                       {reminders.length === 0 ? (
-                        <li className="text-slate-500">
+                        <li className="text-zinc-500">
                           No reminders right now. Your pipeline is up to date.
                         </li>
                       ) : (
                         reminders.map((item) => (
                           <li
                             key={`${item.jobId}-${item.type}`}
-                            className="rounded border border-slate-200 bg-slate-50 p-2"
+                            className="rounded border border-zinc-800/80 bg-zinc-900/40 p-2"
                           >
-                            <p className="font-medium text-slate-700">
+                            <p className="font-medium text-zinc-300">
                               {item.message}
                             </p>
                             {item.nextAction ? (
@@ -1434,11 +1436,11 @@ export function DashboardPage() {
                               </p>
                             ) : null}
                             {item.reason ? (
-                              <p className="text-xs text-slate-500">
+                              <p className="text-xs text-zinc-500">
                                 {item.reason}
                               </p>
                             ) : null}
-                            <p className="text-xs text-slate-500">
+                            <p className="text-xs text-zinc-500">
                               {new Date(item.dueAt).toLocaleString()}
                             </p>
                           </li>
@@ -1446,25 +1448,25 @@ export function DashboardPage() {
                       )}
                     </ul>
                   </div>
-                  <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
-                    <h3 className="font-semibold text-slate-800">
+                  <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/50 p-3 shadow-sm sm:p-4">
+                    <h3 className="font-semibold text-zinc-100">
                       Status timeline
                     </h3>
                     <ul className="mt-2 space-y-2 text-sm">
                       {auditItems.length === 0 ? (
-                        <li className="text-slate-500">
+                        <li className="text-zinc-500">
                           No timeline activity yet.
                         </li>
                       ) : (
                         auditItems.slice(0, 8).map((item) => (
                           <li
                             key={`${item.source}-${item.id}`}
-                            className="rounded border border-slate-200 bg-slate-50 p-2"
+                            className="rounded border border-zinc-800/80 bg-zinc-900/40 p-2"
                           >
-                            <p className="font-medium text-slate-700">
+                            <p className="font-medium text-zinc-300">
                               {item.message}
                             </p>
-                            <p className="text-xs text-slate-500">
+                            <p className="text-xs text-zinc-500">
                               {new Date(item.at).toLocaleString()}
                             </p>
                           </li>
@@ -1474,13 +1476,13 @@ export function DashboardPage() {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
-                  <h3 className="font-semibold text-slate-800">
+                <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/50 p-3 shadow-sm sm:p-4">
+                  <h3 className="font-semibold text-zinc-100">
                     Similar-role grouping
                   </h3>
                   <ul className="mt-2 space-y-2 text-sm">
                     {groupedJobs.length === 0 ? (
-                      <li className="text-slate-500">
+                      <li className="text-zinc-500">
                         No grouped applications yet. Similar company-role
                         entries will appear here.
                       </li>
@@ -1488,12 +1490,12 @@ export function DashboardPage() {
                       groupedJobs.slice(0, 8).map((group) => (
                         <li
                           key={group.key}
-                          className="rounded border border-slate-200 bg-slate-50 p-2"
+                          className="rounded border border-zinc-800/80 bg-zinc-900/40 p-2"
                         >
-                          <p className="font-medium text-slate-700">
+                          <p className="font-medium text-zinc-300">
                             {group.company} - {group.role}
                           </p>
-                          <p className="text-xs text-slate-500">
+                          <p className="text-xs text-zinc-500">
                             {group.location || "Remote"} | Week of{" "}
                             {group.weekStart} | {group.count} records
                           </p>
@@ -1504,8 +1506,8 @@ export function DashboardPage() {
                 </div>
               </>
             ) : (
-              <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
-                <p className="text-sm text-slate-600">
+              <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/50 p-3 shadow-sm sm:p-4">
+                <p className="text-sm text-zinc-400">
                   Secondary insights are hidden for presentation mode. Use{" "}
                   <span className="font-semibold">Show secondary panels</span>{" "}
                   to reveal reminders, timeline, activity, and grouping
@@ -1515,19 +1517,19 @@ export function DashboardPage() {
             )}
 
             {jobsQuery.isLoading ? (
-              <p className="rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-600">
+              <p className="rounded-lg border border-zinc-800/80 bg-zinc-900/50 p-3 text-sm text-zinc-400">
                 Loading jobs...
               </p>
             ) : null}
             {jobsQuery.isError ? (
-              <p className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+              <p className="rounded-lg border border-rose-500/30 bg-rose-950/40 p-3 text-sm text-rose-200">
                 Could not load jobs. Refresh or check your session.
               </p>
             ) : null}
             {!jobsQuery.isLoading &&
             !jobsQuery.isError &&
             (jobs?.length ?? 0) === 0 ? (
-              <div className="rounded-lg border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-600">
+              <div className="rounded-lg border border-dashed border-zinc-700/70 bg-zinc-900/35 p-4 text-sm text-zinc-400">
                 <p>
                   No applications yet. Add your first job or load sample data to
                   explore the workflow.
@@ -1556,10 +1558,10 @@ export function DashboardPage() {
             ) : null}
 
             <div>
-              <h3 className="text-sm font-semibold text-slate-800">
+              <h3 className="text-sm font-semibold text-zinc-100">
                 Kanban Pipeline
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-zinc-500">
                 Drag cards across stages as your applications progress.
               </p>
             </div>
@@ -1568,15 +1570,15 @@ export function DashboardPage() {
                 <div
                   key={status}
                   data-testid={`column-${status}`}
-                  className="rounded-xl border border-slate-200 bg-white p-2 shadow-sm sm:p-3"
+                  className="rounded-xl border border-zinc-800/80 bg-zinc-900/50 p-2 shadow-sm sm:p-3"
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={() => {
                     if (draggedId) moveJob(draggedId, status);
                   }}
                 >
                   <div className="mb-2 flex items-center justify-between">
-                    <h3 className="font-semibold text-slate-800">{status}</h3>
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+                    <h3 className="font-semibold text-zinc-100">{status}</h3>
+                    <span className="rounded-full bg-zinc-800/70 px-2 py-0.5 text-xs font-medium text-zinc-400">
                       {jobsByStatus[status]?.length ?? 0}
                     </span>
                   </div>
@@ -1599,7 +1601,7 @@ export function DashboardPage() {
                         data-job-id={job.id}
                         draggable
                         onDragStart={() => setDraggedId(job.id)}
-                        className="rounded-lg border border-slate-200 bg-slate-50 p-2.5 shadow-sm transition hover:border-brand-300 hover:shadow"
+                        className="rounded-lg border border-zinc-800/80 bg-zinc-900/40 p-2.5 shadow-sm transition hover:border-brand-300 hover:shadow"
                       >
                         <div className="flex items-start justify-between gap-1">
                           <h4 className="font-medium">{job.company}</h4>
@@ -1619,7 +1621,7 @@ export function DashboardPage() {
                             {job.starred ? "★" : "☆"}
                           </button>
                         </div>
-                        <p className="text-sm font-medium text-slate-600">
+                        <p className="text-sm font-medium text-zinc-400">
                           {job.role}
                         </p>
                         <button
@@ -1632,14 +1634,14 @@ export function DashboardPage() {
                         >
                           Company research
                         </button>
-                        <p className="mt-1 text-xs text-slate-500">
+                        <p className="mt-1 text-xs text-zinc-500">
                           Updated {new Date(job.updatedAt).toLocaleDateString()}
                         </p>
-                        <label className="mt-2 block text-xs text-slate-500">
+                        <label className="mt-2 block text-xs text-zinc-500">
                           Follow-up
                           <input
                             type="datetime-local"
-                            className="mt-0.5 w-full rounded border px-2 py-1 text-xs text-slate-800"
+                            className="mt-0.5 w-full rounded border px-2 py-1 text-xs text-zinc-100"
                             defaultValue={toDatetimeLocalValue(job.followUpAt)}
                             key={job.id + (job.followUpAt ?? "")}
                             onBlur={(e) => {
@@ -1683,7 +1685,7 @@ export function DashboardPage() {
                           </button>
                           <button
                             type="button"
-                            className="rounded border border-slate-300 px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100"
+                            className="rounded border border-zinc-700/70 px-2 py-1 text-[11px] font-medium text-zinc-300 hover:bg-zinc-800"
                             onClick={() =>
                               scheduleFiveDayFollowUp.mutate(job.id)
                             }
@@ -1692,7 +1694,7 @@ export function DashboardPage() {
                           </button>
                           <button
                             type="button"
-                            className="rounded border border-slate-300 px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100"
+                            className="rounded border border-zinc-700/70 px-2 py-1 text-[11px] font-medium text-zinc-300 hover:bg-zinc-800"
                             onClick={() =>
                               followUpTemplateMutation.mutate(job.id)
                             }
@@ -1701,7 +1703,7 @@ export function DashboardPage() {
                           </button>
                           <button
                             type="button"
-                            className="rounded border border-slate-300 px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100"
+                            className="rounded border border-zinc-700/70 px-2 py-1 text-[11px] font-medium text-zinc-300 hover:bg-zinc-800"
                             onClick={() =>
                               void exportApplicationPacket(job.id, job.company)
                             }
@@ -1718,7 +1720,7 @@ export function DashboardPage() {
                       </article>
                     ))}
                     {jobsByStatus[status]?.length === 0 ? (
-                      <p className="rounded-lg border border-dashed border-slate-300 p-3 text-xs text-slate-500">
+                      <p className="rounded-lg border border-dashed border-zinc-700/70 p-3 text-xs text-zinc-500">
                         No applications in this stage yet.
                       </p>
                     ) : null}
@@ -1728,37 +1730,37 @@ export function DashboardPage() {
             </div>
 
             {selectedCompanyInsight ? (
-              <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
-                <h3 className="font-semibold text-slate-900">
+              <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/50 p-3 shadow-sm sm:p-4">
+                <h3 className="font-semibold text-white">
                   Company panel{" "}
                   {selectedInsightJobId
                     ? `for job ${selectedInsightJobId.slice(0, 8)}...`
                     : ""}
                 </h3>
-                <p className="mt-1 text-sm text-slate-600">
+                <p className="mt-1 text-sm text-zinc-400">
                   {selectedCompanyInsight.companyName} ·{" "}
                   {selectedCompanyInsight.industry} ·{" "}
                   {selectedCompanyInsight.companySize} employees ·{" "}
                   {selectedCompanyInsight.fundingStage}
                 </p>
-                <p className="mt-2 text-xs font-medium text-slate-500">
+                <p className="mt-2 text-xs font-medium text-zinc-500">
                   Likely tech stack
                 </p>
-                <p className="text-sm text-slate-700">
+                <p className="text-sm text-zinc-300">
                   {selectedCompanyInsight.techStack.join(", ") || "N/A"}
                 </p>
-                <p className="mt-2 text-xs font-medium text-slate-500">
+                <p className="mt-2 text-xs font-medium text-zinc-500">
                   Recent signals
                 </p>
-                <ul className="mt-1 list-disc pl-5 text-sm text-slate-700">
+                <ul className="mt-1 list-disc pl-5 text-sm text-zinc-300">
                   {selectedCompanyInsight.recentNews.map((item) => (
                     <li key={item}>{item}</li>
                   ))}
                 </ul>
-                <p className="mt-2 text-xs font-medium text-slate-500">
+                <p className="mt-2 text-xs font-medium text-zinc-500">
                   Common interview questions
                 </p>
-                <ul className="mt-1 list-disc pl-5 text-sm text-slate-700">
+                <ul className="mt-1 list-disc pl-5 text-sm text-zinc-300">
                   {(selectedCompanyInsight.commonInterviewQuestions ?? []).map(
                     (item) => (
                       <li key={item}>{item}</li>
@@ -1769,11 +1771,11 @@ export function DashboardPage() {
             ) : null}
 
             {followUpTemplate ? (
-              <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
-                <h3 className="font-semibold text-slate-900">
+              <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/50 p-3 shadow-sm sm:p-4">
+                <h3 className="font-semibold text-white">
                   Follow-up email template
                 </h3>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-zinc-500">
                   {followUpTemplate.subject}
                 </p>
                 <textarea
@@ -1796,7 +1798,7 @@ export function DashboardPage() {
               >
                 Prev
               </button>
-              <span className="text-sm font-medium text-slate-600">
+              <span className="text-sm font-medium text-zinc-400">
                 Page {page}
               </span>
               <button
@@ -1824,11 +1826,11 @@ function MetricCard({
   value: string | number;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+    <div className="rounded-2xl border border-zinc-800/90 bg-zinc-900/50 p-3 shadow-lift backdrop-blur-sm sm:p-4">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
         {label}
       </p>
-      <p className="mt-1 text-xl font-semibold leading-tight text-slate-900 sm:text-2xl">
+      <p className="mt-1.5 text-xl font-semibold tabular-nums tracking-tight text-white sm:text-2xl">
         {value}
       </p>
     </div>
@@ -2367,12 +2369,12 @@ function AiWorkspace() {
 
   return (
     <section className="mt-4 grid gap-3 sm:mt-6 sm:gap-4 lg:grid-cols-[1.2fr_1fr]">
-      <div className="space-y-2 rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:space-y-3 sm:p-4">
+      <div className="space-y-2 rounded-xl border border-zinc-800/80 bg-zinc-900/50 p-3 shadow-sm sm:space-y-3 sm:p-4">
         <div>
-          <h3 className="font-semibold text-slate-900">
+          <h3 className="font-semibold text-white">
             Resume Tailor + Cover Letter + Interview Prep
           </h3>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-zinc-500">
             Use the same context once, then generate assets for each stage of
             your application.
           </p>
@@ -2381,8 +2383,8 @@ function AiWorkspace() {
           <div
             className={`rounded border px-3 py-2 text-sm ${
               providerStatusQuery.data.status === "connected"
-                ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                : "border-amber-300 bg-amber-50 text-amber-700"
+                ? "border-emerald-500/35 bg-emerald-950/35 text-emerald-200"
+                : "border-amber-500/35 bg-amber-950/35 text-amber-200"
             }`}
           >
             <strong className="mr-1">
@@ -2396,16 +2398,16 @@ function AiWorkspace() {
             {providerStatusQuery.data.message}
           </div>
         ) : null}
-        <div className="rounded border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+        <div className="rounded border border-zinc-800/80 bg-zinc-900/40 px-3 py-2 text-xs text-zinc-400">
           AI outputs are suggestions, not facts. Verify company details,
           requirements, and claims before sending.
         </div>
         {rateLimitMessage ? (
-          <div className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+          <div className="rounded border border-amber-500/35 bg-amber-950/35 px-3 py-2 text-xs text-amber-200">
             {rateLimitMessage}
           </div>
         ) : null}
-        <div className="rounded border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+        <div className="rounded border border-zinc-800/80 bg-zinc-900/40 px-3 py-2 text-xs text-zinc-300">
           <p className="font-semibold">
             Upload resume and auto-tailor for available jobs
           </p>
@@ -2488,22 +2490,22 @@ function AiWorkspace() {
             </button>
           </div>
           {uploadedResumeName ? (
-            <p className="mt-1 text-[11px] text-slate-500">
+            <p className="mt-1 text-[11px] text-zinc-500">
               Loaded: {uploadedResumeName}
             </p>
           ) : null}
           {resumeUploadError ? (
-            <p className="mt-1 rounded border border-rose-300 bg-rose-50 px-2 py-1 text-[11px] text-rose-700">
+            <p className="mt-1 rounded border border-rose-500/35 bg-rose-950/40 px-2 py-1 text-[11px] text-rose-200">
               {resumeUploadError}
             </p>
           ) : null}
           {resumeStructuredMessage ? (
-            <p className="mt-1 rounded border border-emerald-300 bg-emerald-50 px-2 py-1 text-[11px] text-emerald-700">
+            <p className="mt-1 rounded border border-emerald-500/35 bg-emerald-950/35 px-2 py-1 text-[11px] text-emerald-200">
               {resumeStructuredMessage}
             </p>
           ) : null}
           {autoTailorForJobsMutation.isError ? (
-            <p className="mt-1 rounded border border-rose-300 bg-rose-50 px-2 py-1 text-[11px] text-rose-700">
+            <p className="mt-1 rounded border border-rose-500/35 bg-rose-950/40 px-2 py-1 text-[11px] text-rose-200">
               {extractApiErrorMessage(
                 autoTailorForJobsMutation.error,
                 "Auto tailoring failed. Make sure your session is active and AI provider is configured.",
@@ -2511,7 +2513,7 @@ function AiWorkspace() {
             </p>
           ) : null}
           {autoTailorMessage ? (
-            <p className="mt-1 rounded border border-sky-300 bg-sky-50 px-2 py-1 text-[11px] text-sky-700">
+            <p className="mt-1 rounded border border-sky-500/35 bg-sky-950/35 px-2 py-1 text-[11px] text-sky-200">
               {autoTailorMessage}
             </p>
           ) : null}
@@ -2620,37 +2622,37 @@ function AiWorkspace() {
           </button>
         </div>
         {fitResult ? (
-          <div className="rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm">
-            <p className="font-semibold text-sky-800">
+          <div className="rounded-lg border border-sky-500/30 bg-sky-950/35 p-3 text-sm">
+            <p className="font-semibold text-sky-100">
               Fit score: {fitResult.score}/100
             </p>
-            <p className="text-xs text-sky-700">
+            <p className="text-xs text-sky-200">
               Confidence: {fitResult.confidence ?? "medium"} (keyword overlap
               heuristic)
             </p>
-            <p className="mt-1 text-sky-700">{fitResult.explanation}</p>
-            <p className="mt-2 text-xs font-semibold text-sky-700">
+            <p className="mt-1 text-sky-200">{fitResult.explanation}</p>
+            <p className="mt-2 text-xs font-semibold text-sky-200">
               Matched keywords
             </p>
-            <p className="text-xs text-sky-700">
+            <p className="text-xs text-sky-200">
               {fitResult.matchedKeywords.join(", ") || "None"}
             </p>
-            <p className="mt-2 text-xs font-semibold text-sky-700">
+            <p className="mt-2 text-xs font-semibold text-sky-200">
               Missing keywords
             </p>
-            <p className="text-xs text-sky-700">
+            <p className="text-xs text-sky-200">
               {fitResult.missingKeywords.join(", ") || "None"}
             </p>
-            <p className="mt-2 text-xs font-semibold text-sky-700">
+            <p className="mt-2 text-xs font-semibold text-sky-200">
               Skills gap detection
             </p>
-            <p className="text-xs text-sky-700">
+            <p className="text-xs text-sky-200">
               {fitResult.skillGapDetection.join(", ") || "None"}
             </p>
-            <p className="mt-2 text-xs font-semibold text-sky-700">
+            <p className="mt-2 text-xs font-semibold text-sky-200">
               Suggested bullet improvements
             </p>
-            <ul className="mt-1 list-disc pl-4 text-xs text-sky-700">
+            <ul className="mt-1 list-disc pl-4 text-xs text-sky-200">
               {fitResult.suggestedBulletImprovements.map((item) => (
                 <li key={item}>{item}</li>
               ))}
@@ -2658,31 +2660,31 @@ function AiWorkspace() {
           </div>
         ) : null}
         {atsResult ? (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm">
-            <p className="font-semibold text-amber-800">
+          <div className="rounded-lg border border-amber-500/30 bg-amber-950/35 p-3 text-sm">
+            <p className="font-semibold text-amber-100">
               ATS score: {atsResult.score}/100
             </p>
-            <ul className="mt-1 list-disc pl-4 text-amber-700">
+            <ul className="mt-1 list-disc pl-4 text-amber-200">
               {atsResult.issues.map((issue) => (
                 <li key={issue.message}>
                   [{issue.severity}] {issue.message}
                 </li>
               ))}
             </ul>
-            <p className="mt-2 text-xs font-semibold text-amber-800">
+            <p className="mt-2 text-xs font-semibold text-amber-100">
               Suggestions
             </p>
-            <ul className="mt-1 list-disc pl-4 text-xs text-amber-700">
+            <ul className="mt-1 list-disc pl-4 text-xs text-amber-200">
               {atsResult.suggestions.map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
             {atsResult.checks?.keywordDensity?.length ? (
               <>
-                <p className="mt-2 text-xs font-semibold text-amber-800">
+                <p className="mt-2 text-xs font-semibold text-amber-100">
                   Keyword density
                 </p>
-                <p className="text-xs text-amber-700">
+                <p className="text-xs text-amber-200">
                   {atsResult.checks.keywordDensity
                     .map((item) => `${item.keyword}: ${item.count}`)
                     .join(" | ")}
@@ -2692,13 +2694,13 @@ function AiWorkspace() {
           </div>
         ) : null}
         {mockSessionId ? (
-          <div className="rounded-lg border border-violet-200 bg-violet-50 p-3 text-sm">
-            <p className="font-semibold text-violet-800">Mock interview mode</p>
-            <p className="mt-1 text-violet-700">
+          <div className="rounded-lg border border-violet-500/30 bg-violet-950/35 p-3 text-sm">
+            <p className="font-semibold text-violet-100">Mock interview mode</p>
+            <p className="mt-1 text-violet-200">
               Question {Math.min(mockQuestionIndex + 1, mockQuestions.length)}{" "}
               of {mockQuestions.length}
             </p>
-            <p className="mt-1 text-violet-700">
+            <p className="mt-1 text-violet-200">
               {mockQuestions[mockQuestionIndex] ??
                 "All questions answered. Fetch your summary."}
             </p>
@@ -2734,12 +2736,12 @@ function AiWorkspace() {
               </button>
             </div>
             {mockFeedback ? (
-              <p className="mt-2 text-xs text-violet-700">
+              <p className="mt-2 text-xs text-violet-200">
                 Latest score: {mockFeedback.score}/100 - {mockFeedback.feedback}
               </p>
             ) : null}
             {mockSummary ? (
-              <div className="mt-2 rounded border border-violet-200 bg-white p-2 text-xs text-violet-700">
+              <div className="mt-2 rounded border border-violet-500/25 bg-violet-950/40 p-2 text-xs text-violet-200">
                 <p className="font-semibold">
                   Overall: {mockSummary.overallScore}/100
                 </p>
@@ -2757,34 +2759,34 @@ function AiWorkspace() {
           </div>
         ) : null}
         {autoTailorResults.length > 0 ? (
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm">
-            <p className="font-semibold text-emerald-800">
+          <div className="rounded-lg border border-emerald-500/30 bg-emerald-950/35 p-3 text-sm">
+            <p className="font-semibold text-emerald-100">
               Tailored resume variants for matched jobs
             </p>
             <ul className="mt-2 space-y-2">
               {autoTailorResults.map((item) => (
                 <li
                   key={item.opening.url}
-                  className="rounded border border-emerald-200 bg-white p-2"
+                  className="rounded border border-emerald-500/25 bg-emerald-950/35 p-2"
                 >
-                  <p className="font-medium text-emerald-900">
+                  <p className="font-medium text-emerald-100">
                     {item.opening.title} - {item.opening.company}
                   </p>
-                  <p className="text-xs text-emerald-700">
+                  <p className="text-xs text-emerald-200">
                     Match {item.opening.matchScore}% ·{" "}
                     {item.opening.location || "Remote"}
                   </p>
-                  <p className="mt-1 text-xs text-emerald-700">
+                  <p className="mt-1 text-xs text-emerald-200">
                     {item.output.explanation}
                   </p>
-                  <ul className="mt-1 list-disc pl-4 text-xs text-emerald-800">
+                  <ul className="mt-1 list-disc pl-4 text-xs text-emerald-200">
                     {item.output.rewrittenBullets.slice(0, 4).map((bullet) => (
                       <li key={bullet}>{bullet}</li>
                     ))}
                   </ul>
                   <div className="mt-2 flex gap-2">
                     <button
-                      className="rounded border border-emerald-300 px-2 py-1 text-[11px] font-medium text-emerald-800 hover:bg-emerald-100"
+                      className="rounded border border-emerald-500/35 px-2 py-1 text-[11px] font-medium text-emerald-200 hover:bg-emerald-900/50"
                       type="button"
                       onClick={() => {
                         setTargetRole(item.opening.title);
@@ -2800,7 +2802,7 @@ function AiWorkspace() {
                       href={item.opening.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="rounded border border-emerald-300 px-2 py-1 text-[11px] font-medium text-emerald-800 hover:bg-emerald-100"
+                      className="rounded border border-emerald-500/35 px-2 py-1 text-[11px] font-medium text-emerald-200 hover:bg-emerald-900/50"
                     >
                       Open job
                     </a>
@@ -2822,11 +2824,11 @@ function AiWorkspace() {
           value={interviewPrep}
           onChange={(e) => setInterviewPrep(e.target.value)}
         />
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-          <h4 className="font-semibold text-slate-800">
+        <div className="rounded-lg border border-zinc-800/80 bg-zinc-900/40 p-3">
+          <h4 className="font-semibold text-zinc-100">
             ATS structured resume optimizer
           </h4>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-zinc-500">
             Paste structured resume JSON + job description to generate an
             ATS-tailored JSON, then convert it to clean HTML.
           </p>
@@ -2866,7 +2868,7 @@ function AiWorkspace() {
             </button>
           </div>
           {structuredTailorMutation.isError ? (
-            <p className="mt-2 rounded border border-rose-300 bg-rose-50 px-2 py-1 text-xs text-rose-700">
+            <p className="mt-2 rounded border border-rose-500/35 bg-rose-950/40 px-2 py-1 text-xs text-rose-200">
               {extractApiErrorMessage(
                 structuredTailorMutation.error,
                 "Could not optimize structured resume JSON. Check JSON validity and retry.",
@@ -2874,7 +2876,7 @@ function AiWorkspace() {
             </p>
           ) : null}
           {resumeHtmlMutation.isError ? (
-            <p className="mt-2 rounded border border-rose-300 bg-rose-50 px-2 py-1 text-xs text-rose-700">
+            <p className="mt-2 rounded border border-rose-500/35 bg-rose-950/40 px-2 py-1 text-xs text-rose-200">
               {extractApiErrorMessage(
                 resumeHtmlMutation.error,
                 "Could not generate HTML.",
@@ -2918,7 +2920,7 @@ function AiWorkspace() {
                 </button>
               </div>
               {htmlToPdfMutation.isError ? (
-                <p className="mt-2 rounded border border-rose-300 bg-rose-50 px-2 py-1 text-xs text-rose-700">
+                <p className="mt-2 rounded border border-rose-500/35 bg-rose-950/40 px-2 py-1 text-xs text-rose-200">
                   {extractApiErrorMessage(
                     htmlToPdfMutation.error,
                     "Could not export resume HTML to PDF.",
@@ -2929,8 +2931,8 @@ function AiWorkspace() {
                 <p
                   className={`mt-2 rounded px-2 py-1 text-xs ${
                     exportNotice.type === "success"
-                      ? "border border-emerald-300 bg-emerald-50 text-emerald-700"
-                      : "border border-rose-300 bg-rose-50 text-rose-700"
+                      ? "border border-emerald-500/35 bg-emerald-950/35 text-emerald-200"
+                      : "border border-rose-500/35 bg-rose-950/40 text-rose-200"
                   }`}
                 >
                   {exportNotice.message}
@@ -2964,10 +2966,10 @@ function AiWorkspace() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
-        <h3 className="font-semibold text-slate-900">Generation History</h3>
+      <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/50 p-3 shadow-sm sm:p-4">
+        <h3 className="font-semibold text-white">Generation History</h3>
         {historyQuery.isLoading ? (
-          <p className="mt-2 rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-600">
+          <p className="mt-2 rounded border border-zinc-800/80 bg-zinc-900/40 px-2 py-1 text-xs text-zinc-400">
             Loading generation history...
           </p>
         ) : null}
@@ -2998,8 +3000,8 @@ function AiWorkspace() {
           </select>
         </div>
         {compareLeft && compareRight ? (
-          <div className="mt-2 rounded border border-slate-200 bg-slate-50 p-2">
-            <p className="text-xs text-slate-600">
+          <div className="mt-2 rounded border border-zinc-800/80 bg-zinc-900/40 p-2">
+            <p className="text-xs text-zinc-400">
               Approximate line delta: {compareDiffCount}
             </p>
             <div className="mt-2 grid gap-2 md:grid-cols-2">
@@ -3018,14 +3020,14 @@ function AiWorkspace() {
         ) : null}
         <ul className="mt-3 space-y-2">
           {!historyQuery.isLoading && (historyQuery.data ?? []).length === 0 ? (
-            <li className="rounded-lg border border-dashed border-slate-300 p-3 text-sm text-slate-500">
+            <li className="rounded-lg border border-dashed border-zinc-700/70 p-3 text-sm text-zinc-500">
               No saved generations yet. Run any AI action to build your history.
             </li>
           ) : null}
           {historyQuery.data?.map((item) => (
             <li
               key={item.id}
-              className="rounded-lg border border-slate-200 bg-slate-50 p-2 text-sm"
+              className="rounded-lg border border-zinc-800/80 bg-zinc-900/40 p-2 text-sm"
             >
               <div className="flex items-center justify-between">
                 <span className="font-medium">
@@ -3041,7 +3043,7 @@ function AiWorkspace() {
                   Restore
                 </button>
               </div>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-zinc-500">
                 {new Date(item.createdAt).toLocaleString()}
               </p>
             </li>

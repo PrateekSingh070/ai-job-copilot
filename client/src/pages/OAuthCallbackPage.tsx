@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { setAccessToken } from "../lib/token";
+import { authBackdropClass, authPageClass } from "../ui/theme";
 
 export function OAuthCallbackPage() {
   useEffect(() => {
@@ -17,8 +18,15 @@ export function OAuthCallbackPage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-10">
-      <p className="text-center text-sm text-slate-600">Finishing sign-in…</p>
+    <main className={authPageClass}>
+      <div className={authBackdropClass} aria-hidden />
+      <div className="relative flex flex-col items-center gap-4 rounded-2xl border border-zinc-800/80 bg-zinc-900/70 px-10 py-12 shadow-2xl shadow-black/40 backdrop-blur-xl">
+        <div
+          className="h-9 w-9 animate-spin rounded-full border-2 border-zinc-700 border-t-cyan-400"
+          aria-hidden
+        />
+        <p className="text-sm text-zinc-400">Finishing sign-in…</p>
+      </div>
     </main>
   );
 }

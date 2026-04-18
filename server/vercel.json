@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npx prisma migrate deploy && npm run build",
+  "buildCommand": "npx prisma migrate deploy && npx prisma db seed && npm run build",
   "functions": {
     "src/index.ts": {
       "maxDuration": 60

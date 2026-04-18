@@ -1,0 +1,89 @@
+{
+  "generatedAt": "2026-04-03T18:28:07.553Z",
+  "results": [
+    {
+      "step": 1,
+      "title": "Open app, verify login page",
+      "pass": true,
+      "observation": "URL=http://localhost:5175/login | title=AI Job Application Copilot | h1=Login | h3="
+    },
+    {
+      "step": 2,
+      "title": "Login with credentials",
+      "pass": true,
+      "observation": "URL=http://localhost:5175/dashboard | title=AI Job Application Copilot | h1=AI Job Application Copilot | h3=APPLIED | INTERVIEW | OFFER | REJECTED"
+    },
+    {
+      "step": 3,
+      "title": "Verify dashboard loads",
+      "pass": true,
+      "observation": "URL=http://localhost:5175/dashboard | title=AI Job Application Copilot | h1=AI Job Application Copilot | h3=APPLIED | INTERVIEW | OFFER | REJECTED"
+    },
+    {
+      "step": 4,
+      "title": "Create job (Browser E2E Labs/Full Stack Intern) in APPLIED",
+      "pass": true,
+      "observation": "URL=http://localhost:5175/dashboard | title=AI Job Application Copilot | h1=AI Job Application Copilot | h3=APPLIED | INTERVIEW | OFFER | REJECTED"
+    },
+    {
+      "step": 5,
+      "title": "Verify card appears in APPLIED",
+      "pass": true,
+      "observation": "URL=http://localhost:5175/dashboard | title=AI Job Application Copilot | h1=AI Job Application Copilot | h3=APPLIED | INTERVIEW | OFFER | REJECTED"
+    },
+    {
+      "step": 6,
+      "title": "Move card to INTERVIEW and verify persistence after refresh",
+      "pass": true,
+      "observation": "URL=http://localhost:5175/dashboard | title=AI Job Application Copilot | h1=AI Job Application Copilot | h3=APPLIED | INTERVIEW | OFFER | REJECTED"
+    },
+    {
+      "step": 7,
+      "title": "Open AI Workspace",
+      "pass": true,
+      "observation": "URL=http://localhost:5175/dashboard | title=AI Job Application Copilot | h1=AI Job Application Copilot | h3=Resume Tailor + Cover Letter + Interview Prep | Generation History"
+    },
+    {
+      "step": 8,
+      "title": "Fill target role, resume text, job description",
+      "pass": true,
+      "observation": "URL=http://localhost:5175/dashboard | title=AI Job Application Copilot | h1=AI Job Application Copilot | h3=Resume Tailor + Cover Letter + Interview Prep | Generation History"
+    },
+    {
+      "step": 9,
+      "title": "Generate Resume Bullets and verify output",
+      "pass": true,
+      "observation": "URL=http://localhost:5175/dashboard | title=AI Job Application Copilot | h1=AI Job Application Copilot | h3=Resume Tailor + Cover Letter + Interview Prep | Generation History"
+    },
+    {
+      "step": 10,
+      "title": "Generate Cover Letter and verify output",
+      "pass": true,
+      "observation": "URL=http://localhost:5175/dashboard | title=AI Job Application Copilot | h1=AI Job Application Copilot | h3=Resume Tailor + Cover Letter + Interview Prep | Generation History"
+    },
+    {
+      "step": 11,
+      "title": "Generate Interview Prep and verify output",
+      "pass": true,
+      "observation": "URL=http://localhost:5175/dashboard | title=AI Job Application Copilot | h1=AI Job Application Copilot | h3=Resume Tailor + Cover Letter + Interview Prep | Generation History"
+    },
+    {
+      "step": 12,
+      "title": "Export Cover Letter PDF and verify download",
+      "pass": true,
+      "observation": "URL=http://localhost:5175/dashboard | title=AI Job Application Copilot | h1=AI Job Application Copilot | h3=Resume Tailor + Cover Letter + Interview Prep | Generation History"
+    },
+    {
+      "step": 13,
+      "title": "Export Interview Prep PDF and verify download",
+      "pass": true,
+      "observation": "URL=http://localhost:5175/dashboard | title=AI Job Application Copilot | h1=AI Job Application Copilot | h3=Resume Tailor + Cover Letter + Interview Prep | Generation History"
+    },
+    {
+      "step": 14,
+      "title": "Use Restore in Generation History and verify success behavior",
+      "pass": true,
+      "observation": "URL=http://localhost:5175/dashboard | title=AI Job Application Copilot | h1=AI Job Application Copilot | h3=Resume Tailor + Cover Letter + Interview Prep | Generation History"
+    }
+  ]
+}

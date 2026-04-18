@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="Copilot">
+  <rect x="8" y="8" width="112" height="112" rx="24" fill="#0ea5e9" />
+  <path d="M36 70c0-14 12-26 28-26h28v12H64c-8 0-16 7-16 14 0 8 8 14 16 14h20v12H64c-16 0-28-12-28-26z" fill="#f8fafc"/>
+  <circle cx="92" cy="64" r="8" fill="#f8fafc"/>
+</svg>

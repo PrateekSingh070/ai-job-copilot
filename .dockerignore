@@ -1,0 +1,15 @@
+node_modules
+**/node_modules
+**/dist
+.git
+.env
+.env.*
+!.env.example
+extension
+**/coverage
+**/.vitest
+**/*.md
+!README.md
+playwright-report
+test-results
+.husky

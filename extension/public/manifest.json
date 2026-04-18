@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "AI Job Copilot",
+  "version": "1.0.0",
+  "description": "Capture jobs from LinkedIn, Indeed, and company career pages into Copilot.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "alarms",
+    "notifications"
+  ],
+  "host_permissions": ["http://localhost:4000/*", "https://*/*", "http://*/*"],
+  "action": {
+    "default_title": "AI Job Copilot",
+    "default_popup": "src/popup.html"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://*/*", "http://*/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

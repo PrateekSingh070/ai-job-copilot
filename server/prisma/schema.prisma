@@ -1,0 +1,173 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+  binaryTargets   = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  extensions = [vector(schema: "public")]
+}
+
+model User {
+  id            String           @id @default(cuid())
+  name          String
+  email         String           @unique
+  passwordHash  String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  refreshTokens RefreshToken[]
+  accounts      Account[]
+  jobs          JobApplication[]
+  resumes       ResumeProfile[]
+  resumeChunks  ResumeEmbedding[]
+  generations   AiGeneration[]
+  timeline      JobTimelineEvent[]
+  insights      CompanyInsight[]
+}
+
+model Account {
+  id                String   @id @default(cuid())
+  userId            String
+  provider          String
+  providerAccountId String
+  accessToken       String?  @db.Text
+  refreshToken      String?  @db.Text
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model RefreshToken {
+  id         String   @id @default(cuid())
+  userId     String
+  tokenHash  String   @unique
+  revoked    Boolean  @default(false)
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  replacedBy String?
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model JobApplication {
+  id          String    @id @default(cuid())
+  userId      String
+  company     String
+  role        String
+  jobUrl      String?
+  jobDescription String? @db.Text
+  source      String?
+  location    String?
+  salaryRange String?
+  status      JobStatus @default(APPLIED)
+  notes       String?
+  starred     Boolean   @default(false)
+  followUpAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  timeline    JobTimelineEvent[]
+
+  @@index([userId, status])
+  @@index([createdAt])
+  @@index([userId, starred])
+  @@index([followUpAt])
+}
+
+model JobTimelineEvent {
+  id         String          @id @default(cuid())
+  userId     String
+  jobId      String?
+  eventType  String
+  message    String
+  payloadJson Json?
+  createdAt  DateTime        @default(now())
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job        JobApplication? @relation(fields: [jobId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([jobId, createdAt])
+}
+
+model CompanyInsight {
+  id                String   @id @default(cuid())
+  userId            String
+  companyName       String
+  normalizedCompany String
+  industry          String
+  companySize       String
+  fundingStage      String
+  techStack         String[]
+  recentNews        Json
+  commonInterviewQuestions String[]
+  lastRefreshedAt   DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, normalizedCompany])
+  @@index([userId, companyName])
+}
+
+model ResumeProfile {
+  id        String            @id @default(cuid())
+  userId    String
+  title     String
+  content   String
+  isMaster  Boolean           @default(false)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chunks    ResumeEmbedding[]
+}
+
+/// Embeddings stored as pgvector; similarity search uses $queryRaw.
+model ResumeEmbedding {
+  id          String                @id @default(cuid())
+  userId      String
+  profileId   String
+  chunkText   String                @db.Text
+  chunkIndex  Int                   @default(0)
+  embedding   Unsupported("vector(1536)")?
+  createdAt   DateTime              @default(now())
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profile     ResumeProfile         @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([profileId])
+}
+
+model AiGeneration {
+  id          String           @id @default(cuid())
+  userId      String
+  type        AiGenerationType
+  inputJson   Json
+  outputJson  Json
+  model       String
+  tokenUsage  Int?
+  costUsd     Decimal?         @db.Decimal(10, 4)
+  version     Int              @default(1)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+}
+
+enum JobStatus {
+  APPLIED
+  INTERVIEW
+  OFFER
+  REJECTED
+}
+
+enum AiGenerationType {
+  RESUME_TAILOR
+  COVER_LETTER
+  INTERVIEW_PREP
+}

@@ -10,3 +10,5 @@ client/dist
 server/dist
 coverage
 test-results
+.claude/
+.playwright-mcp/

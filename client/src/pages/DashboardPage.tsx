@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
+import type React from "react";
 import { api } from "../lib/api";
 import { useAuth } from "../providers/AuthProvider";
 import type {
@@ -11,11 +12,27 @@ import type {
   JobStatus,
 } from "../types";
 import {
+  actionChipClass,
+  actionChipPrimaryClass,
   buttonPrimaryClass,
   buttonSecondaryClass,
   inputClass,
+  kanbanColumnAccent,
+  kanbanColumnDot,
+  sectionHeaderClass,
   statusTone,
 } from "../ui/theme.js";
+import {
+  BriefcaseIcon,
+  CalendarIcon,
+  ChartBarIcon,
+  EnvelopeIcon,
+  ArrowDownTrayIcon,
+  SparklesIcon,
+  StarIcon,
+  TrashIcon,
+  BuildingOfficeIcon,
+} from "../ui/icons";
 
 const statuses: JobStatus[] = ["APPLIED", "INTERVIEW", "OFFER", "REJECTED"];
 
@@ -804,58 +821,70 @@ export function DashboardPage() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_100%_70%_at_50%_-20%,rgba(34,211,238,0.09),transparent_55%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_100%_0%,rgba(45,212,191,0.06),transparent_50%)]" />
       </div>
-      <header className="sticky top-0 z-20 border-b border-zinc-800/80 bg-zinc-950/75 backdrop-blur-xl">
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-400/90">
-              Job Copilot
-            </p>
-            <h1 className="mt-0.5 text-lg font-semibold tracking-tight text-white sm:text-xl">
-              Welcome back, {user?.name}
-            </h1>
-            <p className="mt-0.5 text-xs text-zinc-400 sm:text-sm">
-              Pipeline, AI workspace, and exports in one calm surface.
-            </p>
+      <header className="sticky top-0 z-20 border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+          {/* Brand */}
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 to-teal-500 shadow shadow-cyan-950/40">
+              <BriefcaseIcon className="h-4 w-4 text-zinc-950" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold tracking-tight text-white leading-none">
+                Job Copilot
+              </p>
+              <p className="mt-0.5 truncate text-xs text-zinc-500 hidden sm:block">
+                Hi, {user?.name} · Pipeline + AI workspace
+              </p>
+            </div>
           </div>
-          <button
-            data-testid="logout-button"
-            className={`${buttonSecondaryClass} shrink-0 self-start sm:self-auto`}
-            onClick={() => logout()}
-          >
-            Sign out
-          </button>
+          {/* Right actions */}
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              data-testid="logout-button"
+              className={buttonSecondaryClass}
+              onClick={() => logout()}
+            >
+              Sign out
+            </button>
+          </div>
         </div>
       </header>
 
       <section className="mx-auto max-w-7xl px-3 py-5 sm:px-6 sm:py-8">
-        <div className="mb-3">
-          <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
-            Snapshot
-          </h2>
-          <p className="mt-0.5 text-xs text-zinc-500">
-            Conversion and resume signals at a glance.
-          </p>
+        <div className="mb-3 flex items-center gap-2">
+          <ChartBarIcon className="h-4 w-4 text-zinc-500" />
+          <h2 className={sectionHeaderClass}>Pipeline snapshot</h2>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 xl:grid-cols-6">
           <MetricCard
             label="Total Applications"
             value={metricsQuery.data?.totalApplications ?? 0}
+            icon={BriefcaseIcon}
+            accent="sky"
           />
           <MetricCard
             label="Interview Rate"
             value={`${metricsQuery.data?.interviewRate ?? 0}%`}
+            icon={ChartBarIcon}
+            accent="violet"
           />
           <MetricCard
             label="Offer Rate"
             value={`${metricsQuery.data?.offerRate ?? 0}%`}
+            icon={SparklesIcon}
+            accent="emerald"
           />
           <MetricCard
-            label="App -> Interview"
+            label="App → Interview"
             value={`${metricsQuery.data?.conversion?.applicationToInterviewRate ?? 0}%`}
+            icon={ChartBarIcon}
+            accent="cyan"
           />
           <MetricCard
-            label="Interview -> Offer"
+            label="Interview → Offer"
             value={`${metricsQuery.data?.conversion?.interviewToOfferRate ?? 0}%`}
+            icon={ChartBarIcon}
+            accent="amber"
           />
           <MetricCard
             label="Top Resume Match"
@@ -865,29 +894,33 @@ export function DashboardPage() {
                 ? `${metricsQuery.data.resumeVersionPerformance[0].matchScore}%`
                 : "N/A"
             }
+            icon={SparklesIcon}
+            accent="cyan"
           />
         </div>
 
-        <div className="mt-4 inline-flex w-full rounded-2xl border border-zinc-800/90 bg-zinc-900/60 p-1 shadow-lift sm:mt-6 sm:w-auto">
+        <div className="mt-5 inline-flex w-full rounded-2xl border border-zinc-800/90 bg-zinc-900/60 p-1 shadow-lift sm:mt-6 sm:w-auto">
           <button
-            className={`flex-1 rounded-xl px-3 py-2.5 text-sm font-medium transition sm:flex-none sm:px-5 ${
+            className={`flex-1 flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition sm:flex-none sm:px-6 ${
               activeTab === "jobs"
                 ? "bg-gradient-to-r from-cyan-500 to-teal-500 text-zinc-950 shadow-md shadow-cyan-950/40"
                 : "text-zinc-400 hover:bg-zinc-800/80 hover:text-zinc-200"
             }`}
             onClick={() => setActiveTab("jobs")}
           >
+            <BriefcaseIcon className="h-4 w-4" />
             Tracker
           </button>
           <button
-            className={`flex-1 rounded-xl px-3 py-2.5 text-sm font-medium transition sm:flex-none sm:px-5 ${
+            className={`flex-1 flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition sm:flex-none sm:px-6 ${
               activeTab === "ai"
                 ? "bg-gradient-to-r from-cyan-500 to-teal-500 text-zinc-950 shadow-md shadow-cyan-950/40"
                 : "text-zinc-400 hover:bg-zinc-800/80 hover:text-zinc-200"
             }`}
             onClick={() => setActiveTab("ai")}
           >
-            AI workspace
+            <SparklesIcon className="h-4 w-4" />
+            AI Workspace
           </button>
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -963,16 +996,19 @@ export function DashboardPage() {
 
         {activeTab === "jobs" ? (
           <section className="mt-4 space-y-4 sm:mt-6 sm:space-y-6">
-            <div>
-              <h3 className="text-sm font-semibold text-zinc-100">
-                Capture Applications
-              </h3>
-              <p className="text-xs text-zinc-500">
-                Add manually or parse a job URL, then confirm import quality.
-              </p>
+            <div className="flex items-center gap-2">
+              <BriefcaseIcon className="h-4 w-4 text-zinc-500" />
+              <div>
+                <h3 className="text-sm font-semibold text-zinc-100">
+                  Capture Applications
+                </h3>
+                <p className="text-xs text-zinc-500">
+                  Add manually or parse a job URL, then confirm import quality.
+                </p>
+              </div>
             </div>
             <form
-              className="grid gap-2 rounded-xl border border-zinc-800/80 bg-zinc-900/50 p-3 shadow-sm sm:gap-3 sm:p-4 md:grid-cols-4"
+              className="grid gap-2 rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-3 shadow-sm sm:gap-3 sm:p-4 md:grid-cols-4"
               onSubmit={(e) => {
                 e.preventDefault();
                 createJob.mutate();
@@ -1557,173 +1593,230 @@ export function DashboardPage() {
               </div>
             ) : null}
 
-            <div>
-              <h3 className="text-sm font-semibold text-zinc-100">
-                Kanban Pipeline
-              </h3>
-              <p className="text-xs text-zinc-500">
-                Drag cards across stages as your applications progress.
-              </p>
+            <div className="flex items-center gap-2">
+              <ArrowDownTrayIcon className="h-4 w-4 text-zinc-500" />
+              <div>
+                <h3 className="text-sm font-semibold text-zinc-100">
+                  Kanban Pipeline
+                </h3>
+                <p className="text-xs text-zinc-500">
+                  Drag cards across stages as your applications progress.
+                </p>
+              </div>
             </div>
-            <div className="grid gap-2 sm:gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               {statuses.map((status) => (
                 <div
                   key={status}
                   data-testid={`column-${status}`}
-                  className="rounded-xl border border-zinc-800/80 bg-zinc-900/50 p-2 shadow-sm sm:p-3"
+                  className={`flex flex-col rounded-2xl border bg-zinc-900/50 p-3 shadow-sm ${kanbanColumnAccent[status] ?? "border-zinc-800/80"}`}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={() => {
                     if (draggedId) moveJob(draggedId, status);
                   }}
                 >
-                  <div className="mb-2 flex items-center justify-between">
-                    <h3 className="font-semibold text-zinc-100">{status}</h3>
-                    <span className="rounded-full bg-zinc-800/70 px-2 py-0.5 text-xs font-medium text-zinc-400">
+                  {/* Column header */}
+                  <div className="mb-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`h-2 w-2 rounded-full ${kanbanColumnDot[status] ?? "bg-zinc-500"}`}
+                      />
+                      <h3 className="text-sm font-semibold text-zinc-100">
+                        {status === "APPLIED"
+                          ? "Applied"
+                          : status === "INTERVIEW"
+                            ? "Interview"
+                            : status === "OFFER"
+                              ? "Offer"
+                              : "Rejected"}
+                      </h3>
+                    </div>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusTone[status]}`}
+                    >
                       {jobsByStatus[status]?.length ?? 0}
                     </span>
                   </div>
-                  <div
-                    className={`mb-2 inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${statusTone[status]}`}
-                  >
-                    {status === "APPLIED"
-                      ? "Initial stage"
-                      : status === "INTERVIEW"
-                        ? "In progress"
-                        : status === "OFFER"
-                          ? "Strong outcome"
-                          : "Closed"}
-                  </div>
-                  <div className="space-y-2">
-                    {jobsByStatus[status]?.map((job) => (
-                      <article
-                        key={job.id}
-                        data-testid="job-card"
-                        data-job-id={job.id}
-                        draggable
-                        onDragStart={() => setDraggedId(job.id)}
-                        className="rounded-lg border border-zinc-800/80 bg-zinc-900/40 p-2.5 shadow-sm transition hover:border-brand-300 hover:shadow"
-                      >
-                        <div className="flex items-start justify-between gap-1">
-                          <h4 className="font-medium">{job.company}</h4>
-                          <button
-                            type="button"
-                            className="shrink-0 text-lg leading-none text-amber-500 hover:text-amber-600"
-                            aria-label={
-                              job.starred ? "Remove star" : "Star job"
-                            }
-                            onClick={() =>
-                              patchJob.mutate({
-                                id: job.id,
-                                starred: !job.starred,
-                              })
-                            }
-                          >
-                            {job.starred ? "★" : "☆"}
-                          </button>
-                        </div>
-                        <p className="text-sm font-medium text-zinc-400">
-                          {job.role}
-                        </p>
-                        <button
-                          type="button"
-                          className="mt-1 text-xs font-medium text-brand-700 hover:text-brand-800"
-                          onClick={() => {
-                            setSelectedInsightJobId(job.id);
-                            companyInsightMutation.mutate(job.id);
-                          }}
+
+                  {/* Job cards */}
+                  <div className="flex flex-col gap-2">
+                    {jobsByStatus[status]?.map((job) => {
+                      const initials = job.company.slice(0, 2).toUpperCase();
+                      const avatarColors: Record<string, string> = {
+                        APPLIED: "bg-sky-400/15 text-sky-300",
+                        INTERVIEW: "bg-violet-400/15 text-violet-300",
+                        OFFER: "bg-emerald-400/15 text-emerald-300",
+                        REJECTED: "bg-rose-400/15 text-rose-300",
+                      };
+                      return (
+                        <article
+                          key={job.id}
+                          data-testid="job-card"
+                          data-job-id={job.id}
+                          draggable
+                          onDragStart={() => setDraggedId(job.id)}
+                          className="group rounded-xl border border-zinc-800/70 bg-zinc-950/50 p-3 shadow-sm transition-all hover:border-zinc-700/70 hover:bg-zinc-900/70 hover:shadow-md cursor-grab active:cursor-grabbing"
                         >
-                          Company research
-                        </button>
-                        <p className="mt-1 text-xs text-zinc-500">
-                          Updated {new Date(job.updatedAt).toLocaleDateString()}
-                        </p>
-                        <label className="mt-2 block text-xs text-zinc-500">
-                          Follow-up
-                          <input
-                            type="datetime-local"
-                            className="mt-0.5 w-full rounded border px-2 py-1 text-xs text-zinc-100"
-                            defaultValue={toDatetimeLocalValue(job.followUpAt)}
-                            key={job.id + (job.followUpAt ?? "")}
-                            onBlur={(e) => {
-                              const v = e.target.value;
-                              const prev = toDatetimeLocalValue(job.followUpAt);
-                              if (v === prev) return;
-                              patchJob.mutate({
-                                id: job.id,
-                                followUpAt: v
-                                  ? new Date(v).toISOString()
-                                  : null,
-                              });
-                            }}
-                          />
-                        </label>
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          <button
-                            type="button"
-                            className="rounded bg-brand-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-brand-700"
-                            onClick={() => {
-                              if (job.status === "APPLIED") {
-                                scheduleFiveDayFollowUp.mutate(job.id);
-                                return;
+                          {/* Card top: avatar + company + star */}
+                          <div className="flex items-start gap-2.5">
+                            <div
+                              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold ${avatarColors[status] ?? "bg-zinc-800 text-zinc-400"}`}
+                            >
+                              {initials}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <h4 className="truncate text-sm font-semibold text-zinc-100 leading-tight">
+                                {job.company}
+                              </h4>
+                              <p className="truncate text-xs text-zinc-400 leading-tight mt-0.5">
+                                {job.role}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              aria-label={
+                                job.starred ? "Remove star" : "Star job"
                               }
-                              if (job.status === "INTERVIEW") {
-                                followUpTemplateMutation.mutate(job.id);
-                                return;
+                              onClick={() =>
+                                patchJob.mutate({
+                                  id: job.id,
+                                  starred: !job.starred,
+                                })
                               }
-                              if (job.status === "OFFER") {
+                              className="shrink-0 rounded p-0.5 text-zinc-600 transition hover:text-amber-400"
+                            >
+                              <StarIcon
+                                className="h-4 w-4"
+                                filled={job.starred}
+                              />
+                            </button>
+                          </div>
+
+                          {/* Meta row */}
+                          <div className="mt-2.5 flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
+                            {job.location && (
+                              <span className="flex items-center gap-0.5">
+                                <span>📍</span>
+                                {job.location}
+                              </span>
+                            )}
+                            <span className="ml-auto flex items-center gap-1">
+                              <CalendarIcon className="h-3 w-3" />
+                              {new Date(job.updatedAt).toLocaleDateString()}
+                            </span>
+                          </div>
+
+                          {/* Follow-up datetime */}
+                          <label className="mt-2 block">
+                            <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-600">
+                              Follow-up
+                            </span>
+                            <input
+                              type="datetime-local"
+                              className="mt-0.5 w-full rounded-lg border border-zinc-800/70 bg-zinc-950/60 px-2 py-1 text-[11px] text-zinc-300 outline-none focus:border-cyan-400/40 focus:ring-1 focus:ring-cyan-400/10"
+                              defaultValue={toDatetimeLocalValue(
+                                job.followUpAt,
+                              )}
+                              key={job.id + (job.followUpAt ?? "")}
+                              onBlur={(e) => {
+                                const v = e.target.value;
+                                const prev = toDatetimeLocalValue(
+                                  job.followUpAt,
+                                );
+                                if (v === prev) return;
+                                patchJob.mutate({
+                                  id: job.id,
+                                  followUpAt: v
+                                    ? new Date(v).toISOString()
+                                    : null,
+                                });
+                              }}
+                            />
+                          </label>
+
+                          {/* Actions */}
+                          <div className="mt-2.5 flex flex-wrap gap-1.5">
+                            <button
+                              type="button"
+                              className={actionChipPrimaryClass}
+                              onClick={() => {
+                                if (job.status === "APPLIED") {
+                                  scheduleFiveDayFollowUp.mutate(job.id);
+                                  return;
+                                }
+                                if (job.status === "INTERVIEW") {
+                                  followUpTemplateMutation.mutate(job.id);
+                                  return;
+                                }
+                                if (job.status === "OFFER") {
+                                  void exportApplicationPacket(
+                                    job.id,
+                                    job.company,
+                                  );
+                                  return;
+                                }
+                                setSelectedInsightJobId(job.id);
+                                companyInsightMutation.mutate(job.id);
+                              }}
+                            >
+                              <SparklesIcon className="h-3 w-3" />
+                              {suggestedActionForStatus(job.status)}
+                            </button>
+                            <button
+                              type="button"
+                              className={actionChipClass}
+                              onClick={() => {
+                                setSelectedInsightJobId(job.id);
+                                companyInsightMutation.mutate(job.id);
+                              }}
+                            >
+                              <BuildingOfficeIcon className="h-3 w-3" />
+                              Research
+                            </button>
+                            <button
+                              type="button"
+                              className={actionChipClass}
+                              onClick={() =>
+                                followUpTemplateMutation.mutate(job.id)
+                              }
+                            >
+                              <EnvelopeIcon className="h-3 w-3" />
+                              Email draft
+                            </button>
+                            <button
+                              type="button"
+                              className={actionChipClass}
+                              onClick={() =>
                                 void exportApplicationPacket(
                                   job.id,
                                   job.company,
-                                );
-                                return;
+                                )
                               }
-                              setSelectedInsightJobId(job.id);
-                              companyInsightMutation.mutate(job.id);
-                            }}
-                          >
-                            Suggested: {suggestedActionForStatus(job.status)}
-                          </button>
+                            >
+                              <ArrowDownTrayIcon className="h-3 w-3" />
+                              Export
+                            </button>
+                          </div>
+
+                          {/* Delete */}
                           <button
                             type="button"
-                            className="rounded border border-zinc-700/70 px-2 py-1 text-[11px] font-medium text-zinc-300 hover:bg-zinc-800"
-                            onClick={() =>
-                              scheduleFiveDayFollowUp.mutate(job.id)
-                            }
+                            className="mt-2 flex items-center gap-1 text-[11px] font-medium text-zinc-600 transition hover:text-rose-400"
+                            onClick={() => deleteJob.mutate(job.id)}
                           >
-                            Schedule follow-up (5d)
+                            <TrashIcon className="h-3 w-3" />
+                            Remove
                           </button>
-                          <button
-                            type="button"
-                            className="rounded border border-zinc-700/70 px-2 py-1 text-[11px] font-medium text-zinc-300 hover:bg-zinc-800"
-                            onClick={() =>
-                              followUpTemplateMutation.mutate(job.id)
-                            }
-                          >
-                            Draft follow-up email
-                          </button>
-                          <button
-                            type="button"
-                            className="rounded border border-zinc-700/70 px-2 py-1 text-[11px] font-medium text-zinc-300 hover:bg-zinc-800"
-                            onClick={() =>
-                              void exportApplicationPacket(job.id, job.company)
-                            }
-                          >
-                            Export packet
-                          </button>
-                        </div>
-                        <button
-                          className="mt-2 text-xs font-medium text-red-600 transition hover:text-red-700"
-                          onClick={() => deleteJob.mutate(job.id)}
-                        >
-                          Delete
-                        </button>
-                      </article>
-                    ))}
-                    {jobsByStatus[status]?.length === 0 ? (
-                      <p className="rounded-lg border border-dashed border-zinc-700/70 p-3 text-xs text-zinc-500">
-                        No applications in this stage yet.
-                      </p>
-                    ) : null}
+                        </article>
+                      );
+                    })}
+                    {jobsByStatus[status]?.length === 0 && (
+                      <div className="rounded-xl border border-dashed border-zinc-800/60 p-4 text-center">
+                        <p className="text-xs text-zinc-600">
+                          Drop a card here or add a new application above
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -1821,16 +1914,37 @@ export function DashboardPage() {
 function MetricCard({
   label,
   value,
+  icon: Icon,
+  accent = "cyan",
 }: {
   label: string;
   value: string | number;
+  icon?: React.ComponentType<{ className?: string }>;
+  accent?: "cyan" | "violet" | "emerald" | "amber" | "rose" | "sky";
 }) {
+  const accentMap: Record<string, string> = {
+    cyan: "text-cyan-400 bg-cyan-400/10",
+    violet: "text-violet-400 bg-violet-400/10",
+    emerald: "text-emerald-400 bg-emerald-400/10",
+    amber: "text-amber-400 bg-amber-400/10",
+    rose: "text-rose-400 bg-rose-400/10",
+    sky: "text-sky-400 bg-sky-400/10",
+  };
+  const accentClass = accentMap[accent] ?? accentMap.cyan;
+
   return (
-    <div className="rounded-2xl border border-zinc-800/90 bg-zinc-900/50 p-3 shadow-lift backdrop-blur-sm sm:p-4">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
-        {label}
-      </p>
-      <p className="mt-1.5 text-xl font-semibold tabular-nums tracking-tight text-white sm:text-2xl">
+    <div className="group relative overflow-hidden rounded-2xl border border-zinc-800/90 bg-zinc-900/60 p-3 shadow-lift backdrop-blur-sm transition hover:border-zinc-700/80 sm:p-4">
+      <div className="flex items-start justify-between gap-2">
+        <p className={sectionHeaderClass}>{label}</p>
+        {Icon && (
+          <div
+            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${accentClass}`}
+          >
+            <Icon className="h-3.5 w-3.5" />
+          </div>
+        )}
+      </div>
+      <p className="mt-2 text-xl font-bold tabular-nums tracking-tight text-white sm:text-2xl">
         {value}
       </p>
     </div>

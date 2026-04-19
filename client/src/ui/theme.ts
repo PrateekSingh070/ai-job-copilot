@@ -39,3 +39,29 @@ export const authNoticeClass =
   "mt-3 rounded-xl border border-amber-500/35 bg-amber-950/35 px-3 py-2 text-xs text-amber-200";
 
 export const authErrorClass = "text-sm text-rose-300";
+
+export const panelClass =
+  "rounded-2xl border border-zinc-800/80 bg-zinc-900/60 shadow-lift backdrop-blur-sm";
+
+export const sectionHeaderClass =
+  "text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500";
+
+export const actionChipClass =
+  "inline-flex items-center gap-1 rounded-lg border border-zinc-700/70 bg-zinc-900/50 px-2 py-1 text-[11px] font-medium text-zinc-300 transition hover:border-zinc-500/70 hover:bg-zinc-800/70 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-40";
+
+export const actionChipPrimaryClass =
+  "inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-cyan-500/90 to-teal-500/90 px-2 py-1 text-[11px] font-semibold text-zinc-950 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40";
+
+export const kanbanColumnAccent: Record<string, string> = {
+  APPLIED: "border-sky-400/25",
+  INTERVIEW: "border-violet-400/25",
+  OFFER: "border-emerald-400/25",
+  REJECTED: "border-rose-400/25",
+};
+
+export const kanbanColumnDot: Record<string, string> = {
+  APPLIED: "bg-sky-400",
+  INTERVIEW: "bg-violet-400",
+  OFFER: "bg-emerald-400",
+  REJECTED: "bg-rose-400",
+};

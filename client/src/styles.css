@@ -16,4 +16,32 @@
   ::selection {
     @apply bg-cyan-500/30 text-white;
   }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-zinc-700/60;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-zinc-600;
+  }
+
+  /* Date/time input dark mode fix */
+  input[type="datetime-local"],
+  input[type="date"],
+  input[type="time"] {
+    color-scheme: dark;
+  }
+}
+
+@layer utilities {
+  .shadow-lift {
+    box-shadow: 0 18px 50px -24px rgba(0, 0, 0, 0.55);
+  }
 }

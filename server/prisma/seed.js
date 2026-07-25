@@ -3,8 +3,12 @@ import bcrypt from "bcryptjs";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
-const databaseUrl = process.env.DATABASE_URL ?? "";
-const adapter = new PrismaPg({ connectionString: databaseUrl });
+// Seeds one demo user plus a few applications so the dashboard has data.
+// Safe to run more than once: the user is upserted and jobs are only added
+// when the user has none.
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL ?? "",
+});
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
@@ -12,11 +16,7 @@ async function main() {
   const user = await prisma.user.upsert({
     where: { email: "demo@copilot.local" },
     update: {},
-    create: {
-      name: "Demo User",
-      email: "demo@copilot.local",
-      passwordHash,
-    },
+    create: { name: "Demo User", email: "demo@copilot.local", passwordHash },
   });
 
   const existingJobs = await prisma.jobApplication.count({
@@ -38,6 +38,13 @@ async function main() {
           role: "Full Stack Developer",
           status: "INTERVIEW",
           location: "Bengaluru",
+        },
+        {
+          userId: user.id,
+          company: "Vertex Cloud",
+          role: "Backend Engineer",
+          status: "OFFER",
+          location: "Hyderabad",
         },
       ],
     });

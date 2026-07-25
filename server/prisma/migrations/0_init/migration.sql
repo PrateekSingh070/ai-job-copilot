@@ -1,9 +1,6 @@
 -- CreateEnum
 CREATE TYPE "JobStatus" AS ENUM ('APPLIED', 'INTERVIEW', 'OFFER', 'REJECTED');
 
--- CreateEnum
-CREATE TYPE "AiGenerationType" AS ENUM ('RESUME_TAILOR', 'COVER_LETTER', 'INTERVIEW_PREP');
-
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
@@ -36,6 +33,7 @@ CREATE TABLE "JobApplication" (
     "company" TEXT NOT NULL,
     "role" TEXT NOT NULL,
     "jobUrl" TEXT,
+    "jobDescription" TEXT,
     "location" TEXT,
     "salaryRange" TEXT,
     "status" "JobStatus" NOT NULL DEFAULT 'APPLIED',
@@ -44,35 +42,6 @@ CREATE TABLE "JobApplication" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "JobApplication_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "ResumeProfile" (
-    "id" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
-    "title" TEXT NOT NULL,
-    "content" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "ResumeProfile_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "AiGeneration" (
-    "id" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
-    "type" "AiGenerationType" NOT NULL,
-    "inputJson" JSONB NOT NULL,
-    "outputJson" JSONB NOT NULL,
-    "model" TEXT NOT NULL,
-    "tokenUsage" INTEGER,
-    "costUsd" DECIMAL(10,4),
-    "version" INTEGER NOT NULL DEFAULT 1,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "AiGeneration_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -90,17 +59,8 @@ CREATE INDEX "JobApplication_userId_status_idx" ON "JobApplication"("userId", "s
 -- CreateIndex
 CREATE INDEX "JobApplication_createdAt_idx" ON "JobApplication"("createdAt");
 
--- CreateIndex
-CREATE INDEX "AiGeneration_userId_type_idx" ON "AiGeneration"("userId", "type");
-
 -- AddForeignKey
 ALTER TABLE "RefreshToken" ADD CONSTRAINT "RefreshToken_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "JobApplication" ADD CONSTRAINT "JobApplication_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "ResumeProfile" ADD CONSTRAINT "ResumeProfile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "AiGeneration" ADD CONSTRAINT "AiGeneration_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

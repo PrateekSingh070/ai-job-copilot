@@ -2,13 +2,6 @@ import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { prismaMock, resetState } from "./test/prismaMock.js";
 
-process.env.NODE_ENV = "test";
-process.env.PORT = "4001";
-process.env.DATABASE_URL = "postgresql://test:test@localhost:5432/test";
-process.env.JWT_ACCESS_SECRET = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-process.env.JWT_REFRESH_SECRET = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
-process.env.CORS_ORIGIN = "http://localhost:5173";
-
 vi.mock("./db/prisma.js", () => ({ prisma: prismaMock }));
 
 const { app } = await import("./app.js");
@@ -18,7 +11,7 @@ describe("Auth flow", () => {
     resetState();
   });
 
-  it("registers, logs in, refreshes and logs out", async () => {
+  it("registers, logs in, reads /me, refreshes and logs out", async () => {
     const registerRes = await request(app).post("/auth/register").send({
       name: "Test User",
       email: "test@example.com",
@@ -26,7 +19,6 @@ describe("Auth flow", () => {
     });
 
     expect(registerRes.status).toBe(201);
-    expect(registerRes.body.success).toBe(true);
     expect(registerRes.body.data.accessToken).toBeTruthy();
     expect(registerRes.headers["set-cookie"]).toBeTruthy();
 
@@ -37,6 +29,13 @@ describe("Auth flow", () => {
     expect(loginRes.status).toBe(200);
     const cookie = loginRes.headers["set-cookie"][0];
     expect(cookie).toContain("refresh_token=");
+    expect(cookie).toContain("HttpOnly");
+
+    const meRes = await request(app)
+      .get("/auth/me")
+      .set("Authorization", `Bearer ${loginRes.body.data.accessToken}`);
+    expect(meRes.status).toBe(200);
+    expect(meRes.body.data.email).toBe("test@example.com");
 
     const refreshRes = await request(app)
       .post("/auth/refresh")
@@ -44,10 +43,56 @@ describe("Auth flow", () => {
     expect(refreshRes.status).toBe(200);
     expect(refreshRes.body.data.accessToken).toBeTruthy();
 
+    // The old refresh token was rotated, so replaying it must fail.
+    const replayRes = await request(app)
+      .post("/auth/refresh")
+      .set("Cookie", cookie);
+    expect(replayRes.status).toBe(401);
+
     const logoutRes = await request(app)
       .post("/auth/logout")
       .set("Cookie", cookie);
     expect(logoutRes.status).toBe(200);
     expect(logoutRes.body.data.loggedOut).toBe(true);
+  });
+
+  it("rejects duplicate emails and bad credentials", async () => {
+    const payload = {
+      name: "Test User",
+      email: "dupe@example.com",
+      password: "Password123!",
+    };
+    await request(app).post("/auth/register").send(payload);
+
+    const duplicateRes = await request(app)
+      .post("/auth/register")
+      .send(payload);
+    expect(duplicateRes.status).toBe(409);
+
+    const wrongPasswordRes = await request(app)
+      .post("/auth/login")
+      .send({ email: "dupe@example.com", password: "WrongPass123!" });
+    expect(wrongPasswordRes.status).toBe(401);
+  });
+
+  it("requires a valid access token on /auth/me", async () => {
+    const res = await request(app).get("/auth/me");
+    expect(res.status).toBe(401);
+  });
+
+  it("rejects invalid register input", async () => {
+    const res = await request(app)
+      .post("/auth/register")
+      .send({ name: "T", email: "not-an-email", password: "short" });
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe("VALIDATION_ERROR");
+  });
+});
+
+describe("Health check", () => {
+  it("reports ok", async () => {
+    const res = await request(app).get("/health");
+    expect(res.status).toBe(200);
+    expect(res.body.data.status).toBe("ok");
   });
 });

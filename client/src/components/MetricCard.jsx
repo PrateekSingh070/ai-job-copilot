@@ -6,8 +6,6 @@ export function MetricCard({ label, value, icon: Icon, accent = "cyan" }) {
     cyan: "text-cyan-400 bg-cyan-400/10",
     violet: "text-violet-400 bg-violet-400/10",
     emerald: "text-emerald-400 bg-emerald-400/10",
-    amber: "text-amber-400 bg-amber-400/10",
-    rose: "text-rose-400 bg-rose-400/10",
     sky: "text-sky-400 bg-sky-400/10",
   };
   const accentClass = accentMap[accent] ?? accentMap.cyan;

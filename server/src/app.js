@@ -12,14 +12,12 @@ import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { authRouter } from "./modules/auth/auth.routes.js";
 import { jobsRouter } from "./modules/jobs/jobs.routes.js";
 import { aiRouter } from "./modules/ai/ai.routes.js";
-import { exportRouter } from "./modules/export/export.routes.js";
-import { resumesRouter } from "./modules/resumes/resumes.routes.js";
 import { sendSuccess } from "./utils/response.js";
 
 /** Paths handled by the API — other GET requests receive the SPA shell. */
 function isApiPath(requestPath) {
   if (requestPath === "/health") return true;
-  return /^\/(auth|jobs|ai|exports|resumes)(\/|$)/.test(requestPath);
+  return /^\/(auth|jobs|ai)(\/|$)/.test(requestPath);
 }
 
 function mountClientSpa(app, staticDir) {
@@ -48,28 +46,16 @@ const allowedOrigins = env.CORS_ORIGIN.split(",").map((origin) =>
   origin.trim(),
 );
 
-/** Vercel preview + production client hosts for the default project names. */
-function isDefaultDeployedClientOrigin(origin) {
-  if (!origin) return false;
-  return (
-    origin.startsWith("https://ai-job-copilot-client") &&
-    origin.endsWith(".vercel.app")
-  );
-}
-
 app.use(helmet());
 app.use(
   cors({
     origin(origin, callback) {
+      // Allow same-origin/server-to-server calls (no Origin header), the
+      // configured origins, and any localhost port while developing.
       const isLocalhostDevOrigin =
         env.NODE_ENV === "development" &&
         Boolean(origin?.startsWith("http://localhost:"));
-      if (
-        !origin ||
-        allowedOrigins.includes(origin) ||
-        isLocalhostDevOrigin ||
-        isDefaultDeployedClientOrigin(origin)
-      ) {
+      if (!origin || allowedOrigins.includes(origin) || isLocalhostDevOrigin) {
         callback(null, true);
         return;
       }
@@ -103,8 +89,6 @@ app.get("/health", (_req, res) =>
 app.use("/auth", authRouter);
 app.use("/jobs", jobsRouter);
 app.use("/ai", aiRouter);
-app.use("/exports", exportRouter);
-app.use("/resumes", resumesRouter);
 
 if (env.NODE_ENV === "production" && env.CLIENT_STATIC_DIR) {
   mountClientSpa(app, env.CLIENT_STATIC_DIR);

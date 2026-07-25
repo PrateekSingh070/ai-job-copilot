@@ -12,6 +12,8 @@ const rootEnvPath = path.resolve(currentDir, "../../../.env");
 dotenv.config({ path: rootEnvPath });
 dotenv.config({ path: serverEnvPath });
 
+// One schema for every env var the server reads. Parsing at boot means a bad
+// config fails fast instead of surfacing as a runtime error later.
 const envSchema = z.object({
   NODE_ENV: z
     .string()
@@ -34,14 +36,7 @@ const envSchema = z.object({
   ANTHROPIC_MODEL: z.string().optional(),
   AI_MAX_INPUT_CHARS: z.coerce.number().int().positive().default(4000),
   AI_MAX_OUTPUT_TOKENS_RESUME: z.coerce.number().int().positive().default(450),
-  AI_MAX_OUTPUT_TOKENS_COVER: z.coerce.number().int().positive().default(550),
-  AI_MAX_OUTPUT_TOKENS_INTERVIEW: z.coerce
-    .number()
-    .int()
-    .positive()
-    .default(700),
   AI_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(8),
-  REDIS_URL: z.string().optional(),
   AUTH_RATE_LIMIT_WINDOW_MS: z.coerce
     .number()
     .int()
@@ -50,13 +45,7 @@ const envSchema = z.object({
   AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(20),
   FRONTEND_URL: z.string().url().default("http://localhost:5173"),
   SERVER_PUBLIC_URL: z.string().url().default("http://localhost:4000"),
-  GOOGLE_CLIENT_ID: z.string().optional(),
-  GOOGLE_CLIENT_SECRET: z.string().optional(),
-  GITHUB_CLIENT_ID: z.string().optional(),
-  GITHUB_CLIENT_SECRET: z.string().optional(),
-  OAUTH_STATE_SECRET: z.string().min(16).optional(),
   SENTRY_DSN: z.string().optional(),
-  OPENAI_EMBEDDING_MODEL: z.string().default("text-embedding-3-small"),
   /** Absolute path to Vite `client/dist` for production (same-origin API + SPA). */
   CLIENT_STATIC_DIR: z.string().optional(),
 });

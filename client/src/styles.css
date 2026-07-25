@@ -31,13 +31,6 @@
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-zinc-600;
   }
-
-  /* Date/time input dark mode fix */
-  input[type="datetime-local"],
-  input[type="date"],
-  input[type="time"] {
-    color-scheme: dark;
-  }
 }
 
 @layer utilities {

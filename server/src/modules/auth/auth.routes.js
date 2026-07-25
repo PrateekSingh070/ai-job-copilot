@@ -12,7 +12,6 @@ import { ApiError } from "../../utils/ApiError.js";
 import { requireAuth } from "../../middleware/auth.js";
 import { prisma } from "../../db/prisma.js";
 import { authCredentialsLimiter } from "../../middleware/authRateLimit.js";
-import { oauthRouter } from "./oauth.routes.js";
 import {
   clearRefreshTokenCookie,
   refreshCookieName,
@@ -74,8 +73,6 @@ router.post("/logout", async (req, res) => {
   clearRefreshTokenCookie(res);
   return sendSuccess(res, { loggedOut: true });
 });
-
-router.use("/oauth", oauthRouter);
 
 router.get("/me", requireAuth, async (req, res) => {
   const user = await prisma.user.findUnique({

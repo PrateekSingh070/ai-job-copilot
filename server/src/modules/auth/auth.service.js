@@ -49,9 +49,9 @@ export async function registerUser(input) {
 
 export async function loginUser(input) {
   const user = await prisma.user.findUnique({ where: { email: input.email } });
-  // No account, or an OAuth-only account with no password set. Use the same
-  // error in every failure case so we never reveal which emails are registered.
-  if (!user || !user.passwordHash) {
+  // Same error for "no such user" and "wrong password" so we never reveal
+  // which emails are registered.
+  if (!user) {
     throw new ApiError(401, "INVALID_CREDENTIALS", "Invalid email or password");
   }
 

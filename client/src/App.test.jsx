@@ -21,33 +21,57 @@ vi.mock("./lib/api", () => ({
   },
 }));
 
-describe("Frontend auth + create job flow", () => {
+function renderApp() {
+  const queryClient = new QueryClient();
+  return render(
+    <MemoryRouter initialEntries={["/login"]}>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </QueryClientProvider>
+    </MemoryRouter>,
+  );
+}
+
+describe("Frontend auth + job tracker flow", () => {
   beforeEach(() => {
     localStorage.clear();
     getMock.mockReset();
     postMock.mockReset();
     patchMock.mockReset();
     deleteMock.mockReset();
-  });
 
-  it("logs in and creates a job", async () => {
     getMock.mockImplementation((url) => {
-      if (url === "/jobs")
-        return Promise.resolve({ data: { success: true, data: [] } });
+      if (url === "/jobs") {
+        return Promise.resolve({
+          data: {
+            success: true,
+            data: [
+              {
+                id: "j1",
+                company: "Acme",
+                role: "Full Stack Intern",
+                status: "APPLIED",
+                updatedAt: "2026-01-01T00:00:00.000Z",
+              },
+            ],
+            meta: { page: 1, pageSize: 20, total: 1 },
+          },
+        });
+      }
       if (url === "/jobs/metrics/summary") {
         return Promise.resolve({
           data: {
             data: {
-              totalApplications: 0,
+              totalApplications: 1,
+              stageDistribution: { APPLIED: 1 },
               interviewRate: 0,
               offerRate: 0,
-              stageDistribution: {},
             },
           },
         });
       }
-      if (url === "/ai/history")
-        return Promise.resolve({ data: { success: true, data: [] } });
       return Promise.resolve({ data: { data: {} } });
     });
 
@@ -62,40 +86,81 @@ describe("Frontend auth + create job flow", () => {
           },
         });
       }
-      if (url === "/jobs") {
-        return Promise.resolve({
-          data: {
-            data: { id: "j1", company: "Acme", role: "Dev", status: "APPLIED" },
-          },
-        });
-      }
       return Promise.resolve({ data: { data: {} } });
     });
+  });
 
-    const queryClient = new QueryClient();
-    render(
-      <MemoryRouter initialEntries={["/login"]}>
-        <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-            <App />
-          </AuthProvider>
-        </QueryClientProvider>
-      </MemoryRouter>,
-    );
+  it("logs in and lands on the dashboard", async () => {
+    renderApp();
 
-    fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
-    await screen.findByText(/welcome back, demo/i);
+    fireEvent.click(screen.getByTestId("login-submit"));
 
-    fireEvent.change(screen.getByPlaceholderText("Company"), {
+    expect(
+      await screen.findByRole("heading", { name: /application dashboard/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("logout-button")).toHaveTextContent(/sign out/i);
+  });
+
+  it("creates a job from the dashboard form", async () => {
+    renderApp();
+
+    fireEvent.click(screen.getByTestId("login-submit"));
+    await screen.findByTestId("add-job-company");
+
+    fireEvent.change(screen.getByTestId("add-job-company"), {
       target: { value: "Acme" },
     });
-    fireEvent.change(screen.getByPlaceholderText("Role"), {
+    fireEvent.change(screen.getByTestId("add-job-role"), {
       target: { value: "Full Stack Intern" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /add job/i }));
+    fireEvent.click(screen.getByTestId("add-job-submit"));
 
     await waitFor(() =>
-      expect(postMock).toHaveBeenCalledWith("/jobs", expect.anything()),
+      expect(postMock).toHaveBeenCalledWith("/jobs", {
+        company: "Acme",
+        role: "Full Stack Intern",
+        status: "APPLIED",
+      }),
+    );
+  });
+
+  it("renders jobs on the kanban board and can delete one", async () => {
+    renderApp();
+
+    fireEvent.click(screen.getByTestId("login-submit"));
+
+    const card = await screen.findByTestId("job-card");
+    expect(card).toHaveTextContent("Acme");
+    expect(screen.getByTestId("column-APPLIED")).toContainElement(card);
+
+    fireEvent.click(screen.getByRole("button", { name: /delete acme/i }));
+    await waitFor(() => expect(deleteMock).toHaveBeenCalledWith("/jobs/j1"));
+  });
+
+  it("switches to the resume tailor tab and calls the AI endpoint", async () => {
+    renderApp();
+
+    fireEvent.click(screen.getByTestId("login-submit"));
+    await screen.findByTestId("add-job-company");
+
+    fireEvent.click(screen.getByRole("button", { name: /resume tailor/i }));
+
+    fireEvent.change(screen.getByTestId("tailor-role"), {
+      target: { value: "Full Stack Engineer" },
+    });
+    fireEvent.change(screen.getByTestId("tailor-resume"), {
+      target: { value: "a".repeat(60) },
+    });
+    fireEvent.change(screen.getByTestId("tailor-jd"), {
+      target: { value: "b".repeat(60) },
+    });
+    fireEvent.click(screen.getByTestId("tailor-submit"));
+
+    await waitFor(() =>
+      expect(postMock).toHaveBeenCalledWith(
+        "/ai/resume-tailor",
+        expect.objectContaining({ targetRole: "Full Stack Engineer" }),
+      ),
     );
   });
 });

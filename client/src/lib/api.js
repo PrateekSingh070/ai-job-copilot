@@ -28,26 +28,9 @@ function notifySessionExpired() {
   window.dispatchEvent(new CustomEvent("auth:session-expired"));
 }
 
-function notifyAiRateLimited(message) {
-  if (typeof window === "undefined") return;
-  window.dispatchEvent(
-    new CustomEvent("ai:rate-limited", { detail: { message } }),
-  );
-}
-
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (
-      error?.response?.status === 429 &&
-      error?.response?.data?.error?.code === "AI_RATE_LIMITED"
-    ) {
-      notifyAiRateLimited(
-        error?.response?.data?.error?.message ??
-          "AI request limit reached. Please wait and try again.",
-      );
-      throw error;
-    }
     // Give up on anything that isn't an auth failure, or that we've already
     // retried once (prevents infinite refresh loops).
     if (error?.response?.status !== 401 || error.config._retry) {

@@ -1,117 +1,126 @@
 # AI Job Application Copilot
 
-Production-ready full-stack portfolio project for freshers to track jobs and generate AI-assisted application assets.
+A full-stack job application tracker. Users register, add the jobs they've applied to,
+move them across a Kanban board as they progress, see their conversion metrics, and
+use one AI feature that rewrites resume bullets for a specific job posting.
 
-## Features
+**Stack:** React (Vite) + Tailwind on the frontend, Express + Prisma + PostgreSQL on the
+backend, Zod for validation, JWT for auth. Everything is plain JavaScript (ESM).
 
-- JWT auth with access token + refresh token rotation via httpOnly cookies
-- Kanban job tracker with status drag/drop, filtering, pagination, and ownership checks
-- AI endpoints for resume tailoring, cover letter generation, and interview prep
-- AI generation history with version restore
-- Dashboard metrics: total applications, stage distribution, interview rate, offer rate
-- PDF export for generated outputs
-- Typed API contract with Zod validation and consistent response shape
-- Docker + docker-compose setup for local full-stack deployment
+## How it fits together
 
-## Architecture
+```
+Browser (React)  --HTTP-->  Express API  --Prisma-->  PostgreSQL
+                                 |
+                                 +--> OpenAI / Anthropic (or a local mock)
+```
 
-- `client/` React + TypeScript + Tailwind (`react-query`, route guards, Kanban + AI workspace)
-- `server/` Express + TypeScript + Prisma + PostgreSQL
-- `shared/` Zod schemas and shared TS contracts
+- `client/` — the React single-page app
+- `server/` — the REST API and database layer
 
-## Quick Start
+## API
 
-1. Copy env:
-   - `cp .env.example .env`
-2. Install dependencies:
-   - `npm install`
-   - `npm --prefix client install`
-   - `npm --prefix server install`
-   - `npm --prefix shared install`
-   - `npm --prefix extension install`
-3. Start Postgres (local or Docker):
-   - `docker compose up -d postgres redis`
-4. Run Prisma:
-   - `npm --prefix server run prisma:generate`
-   - `npm --prefix server run prisma:migrate -- --name init`
-   - `npm --prefix server run prisma:seed`
-5. Start apps:
-   - `npm run dev`
-6. Open:
-   - Client: `http://localhost:5173`
-   - API: `http://localhost:4000`
+| Method | Route | What it does |
+|---|---|---|
+| GET | `/health` | Liveness check |
+| POST | `/auth/register` | Create an account, return an access token |
+| POST | `/auth/login` | Log in, return an access token |
+| POST | `/auth/refresh` | Rotate the refresh token, issue a new access token |
+| POST | `/auth/logout` | Revoke the refresh token |
+| GET | `/auth/me` | Current user |
+| GET | `/jobs` | List the user's jobs (filter by company/status/date, paginated) |
+| POST | `/jobs` | Create a job |
+| PATCH | `/jobs/:id` | Update a job (used by the Kanban drag-and-drop) |
+| DELETE | `/jobs/:id` | Delete a job |
+| GET | `/jobs/metrics/summary` | Totals, stage distribution, interview rate, offer rate |
+| POST | `/ai/resume-tailor` | Rewrite resume bullets for a job description |
 
-## Demo User (local dev)
+Every response uses the same envelope: `{ success, data, meta? }` on success and
+`{ success: false, error: { code, message } }` on failure.
 
-- email: `demo@copilot.local`
-- password: `DemoPass123!`
+## Auth design (the part worth explaining)
 
-## Environment Variables
+- **Access token**: short-lived JWT, returned in the response body and held in memory
+  on the client. Never written to `localStorage`.
+- **Refresh token**: long-lived, sent as an `httpOnly` cookie so JavaScript can't read it.
+- **Rotation**: each refresh revokes the old token row and records `replacedBy`, so a
+  replayed token is detectable. See `server/src/modules/auth/auth.service.js`.
+- On a `401`, the client calls `/auth/refresh` once and retries the original request.
+  Concurrent 401s queue behind that single refresh — see `client/src/lib/api.js`.
 
-See `.env.example`.
+## Data model
 
-### Switch from mock to real AI
+Three tables (`server/prisma/schema.prisma`):
 
-Set one provider in `.env` and restart the server:
+- `User` — name, email, password hash
+- `RefreshToken` — one row per issued refresh token, for rotation and revocation
+- `JobApplication` — company, role, status (`APPLIED`/`INTERVIEW`/`OFFER`/`REJECTED`), notes
 
-- OpenAI
-  - `AI_PROVIDER=openai`
-  - `OPENAI_API_KEY=<your_key>`
-  - optional: `OPENAI_MODEL=gpt-4o-mini`
+Ownership is enforced on every job route: queries always filter by `userId`, and a job
+belonging to someone else returns `404` (not `403`) so we don't leak which ids exist.
 
-- Anthropic
-  - `AI_PROVIDER=anthropic`
-  - `ANTHROPIC_API_KEY=<your_key>`
-  - optional: `ANTHROPIC_MODEL=claude-3-5-sonnet-latest`
+## The AI feature
 
-The AI endpoints now send prompt templates to the selected provider and enforce structured JSON output with server-side validation.
-You can reduce spend with:
+`POST /ai/resume-tailor` takes a resume, a job description and a target role, then returns
+rewritten bullets, extracted keywords, a match score and an explanation.
 
-- `AI_MAX_INPUT_CHARS`
-- `AI_MAX_OUTPUT_TOKENS_RESUME`
-- `AI_MAX_OUTPUT_TOKENS_COVER`
-- `AI_MAX_OUTPUT_TOKENS_INTERVIEW`
-- `AI_RATE_LIMIT_PER_MINUTE`
+`AI_PROVIDER` selects the backend:
 
-## API (high level)
+- `mock` (default) — a deterministic local implementation, so the app and its tests run
+  with no API key
+- `openai` / `anthropic` — real calls; the response is parsed and validated against a Zod
+  schema, so callers get the same shape either way
 
-- Auth: `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`, `GET /auth/me`
-- Jobs: `GET /jobs`, `POST /jobs`, `PATCH /jobs/:id`, `DELETE /jobs/:id`, `GET /jobs/metrics/summary`
-- AI: `POST /ai/resume-tailor`, `POST /ai/cover-letter`, `POST /ai/interview-prep`, `GET /ai/history`, `POST /ai/history/:id/restore`
-- Export: `POST /exports/pdf`
-- Health: `GET /health`
+Free text is sanitized and length-capped before it goes into a prompt
+(`server/src/utils/aiPromptSanitize.js`).
 
-## Quality & Testing
+## Running it
 
-- Lint:
-  - `npm run lint`
-- Tests:
-  - `npm run test`
-- Server tests cover auth flow, job ownership, AI response shape.
-- Client test covers login + create job flow.
+```bash
+cp .env.example .env
+npm install
 
-## Browser Extension
+# start Postgres, then:
+npm --prefix server run prisma:migrate
+npm --prefix server run prisma:seed
 
-- Build before loading unpacked extension:
-  - `npm --prefix extension run build`
-- In Chrome, use **Load unpacked** and select `extension/dist` (not `extension/src`).
+npm run dev          # client on :5173, API on :4000
+```
 
-## Deployment Guidance
+Demo login: `demo@copilot.local` / `DemoPass123!`
 
-### Local full stack
+```bash
+npm test     # 24 tests (20 server, 4 client)
+npm run lint
+npm run build
+```
 
-- `docker compose up --build`
+## Layout
 
-### Production options
+```
+client/src
+  main.jsx                  React entry point
+  App.jsx                   Routes
+  providers/AuthProvider    Login/register/logout + session bootstrap
+  routes/ProtectedRoute     Redirects anonymous users to /login
+  lib/api.js                Axios instance + refresh-on-401 retry
+  pages/LoginPage           Email/password sign in
+  pages/RegisterPage        Account creation
+  pages/DashboardPage       Metrics, add-job form, filters, pagination, tabs
+  components/KanbanBoard    Four columns, HTML5 drag-and-drop
+  components/ResumeTailor   The AI feature
+  components/MetricCard     Single stat card
+  ui/                       Tailwind class constants + inline SVG icons
 
-- API + DB: Render / Railway / Fly
-- Client static app: Vercel / Netlify / Cloudflare Pages
-- Set secure env vars in host dashboard
-- Use managed PostgreSQL + Redis
-- Set `CORS_ORIGIN` to your frontend domain
-
-## Screenshots
-
-- `docs/screenshots/dashboard.png` (placeholder)
-- `docs/screenshots/kanban.png` (placeholder)
-- `docs/screenshots/ai-workspace.png` (placeholder)
+server/src
+  index.js                  Boots the HTTP server
+  app.js                    Express setup: security, CORS, logging, rate limit, routes
+  config/env.js             Validates environment variables on startup
+  db/prisma.js              Prisma client singleton
+  middleware/               auth (JWT), validate (Zod), errorHandler, requestId, rate limit
+  modules/auth/             Register, login, refresh rotation, logout
+  modules/jobs/             Job CRUD, filtering, metrics
+  modules/ai/               Resume tailoring (mock + real providers)
+  shared/index.js           Zod schemas for every request shape
+  utils/                    ApiError, response helpers, JWT, sanitizers
+```

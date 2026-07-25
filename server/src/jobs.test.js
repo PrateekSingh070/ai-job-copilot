@@ -3,19 +3,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { prismaMock, resetState, state } from "./test/prismaMock.js";
 import { signAccessToken } from "./utils/jwt.js";
 
-process.env.NODE_ENV = "test";
-process.env.PORT = "4001";
-process.env.DATABASE_URL = "postgresql://test:test@localhost:5432/test";
-process.env.JWT_ACCESS_SECRET = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-process.env.JWT_REFRESH_SECRET = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
-process.env.CORS_ORIGIN = "http://localhost:5173";
-
 vi.mock("./db/prisma.js", () => ({ prisma: prismaMock }));
 
 const { app } = await import("./app.js");
 
+const authHeader = (userId, email) => [
+  "Authorization",
+  `Bearer ${signAccessToken({ sub: userId, email })}`,
+];
+
 describe("Jobs endpoints", () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     resetState();
     state.users.push({
       id: "u1",
@@ -24,52 +22,71 @@ describe("Jobs endpoints", () => {
       passwordHash: "hash",
       createdAt: new Date(),
     });
-    state.users.push({
-      id: "u2",
-      name: "Other",
-      email: "other@x.com",
-      passwordHash: "hash",
-      createdAt: new Date(),
-    });
   });
 
-  it("creates and updates own job", async () => {
-    const token = signAccessToken({ sub: "u1", email: "owner@x.com" });
+  it("creates, lists, updates and deletes own job", async () => {
+    const auth = authHeader("u1", "owner@x.com");
 
     const createRes = await request(app)
       .post("/jobs")
-      .set("Authorization", `Bearer ${token}`)
+      .set(...auth)
       .send({ company: "Acme", role: "Engineer", status: "APPLIED" });
     expect(createRes.status).toBe(201);
+    const jobId = createRes.body.data.id;
+
+    const listRes = await request(app)
+      .get("/jobs")
+      .set(...auth);
+    expect(listRes.status).toBe(200);
+    expect(listRes.body.data).toHaveLength(1);
+    expect(listRes.body.meta).toMatchObject({
+      page: 1,
+      pageSize: 10,
+      total: 1,
+    });
 
     const patchRes = await request(app)
-      .patch(`/jobs/${createRes.body.data.id}`)
-      .set("Authorization", `Bearer ${token}`)
+      .patch(`/jobs/${jobId}`)
+      .set(...auth)
       .send({ status: "INTERVIEW" });
     expect(patchRes.status).toBe(200);
     expect(patchRes.body.data.status).toBe("INTERVIEW");
+
+    const deleteRes = await request(app)
+      .delete(`/jobs/${jobId}`)
+      .set(...auth);
+    expect(deleteRes.status).toBe(200);
+    expect(deleteRes.body.data.deleted).toBe(true);
   });
 
-  it("exports csv and returns recent activity", async () => {
-    const token = signAccessToken({ sub: "u1", email: "owner@x.com" });
-    await request(app)
-      .post("/jobs")
-      .set("Authorization", `Bearer ${token}`)
-      .send({ company: "Acme", role: "Engineer", status: "APPLIED" });
+  it("filters by status and company and paginates", async () => {
+    const auth = authHeader("u1", "owner@x.com");
+    for (const job of [
+      { company: "Acme", role: "Engineer", status: "APPLIED" },
+      { company: "Acme Labs", role: "Designer", status: "INTERVIEW" },
+      { company: "Nova", role: "Engineer", status: "APPLIED" },
+    ]) {
+      await request(app)
+        .post("/jobs")
+        .set(...auth)
+        .send(job);
+    }
 
-    const csvRes = await request(app)
-      .get("/jobs/export/csv")
-      .set("Authorization", `Bearer ${token}`);
-    expect(csvRes.status).toBe(200);
-    expect(String(csvRes.headers["content-type"])).toMatch(/text\/csv/);
-    expect(csvRes.text).toContain("company,role,status");
-    expect(csvRes.text).toContain("Acme");
+    const statusRes = await request(app)
+      .get("/jobs?status=APPLIED")
+      .set(...auth);
+    expect(statusRes.body.meta.total).toBe(2);
 
-    const actRes = await request(app)
-      .get("/jobs/activity/recent")
-      .set("Authorization", `Bearer ${token}`);
-    expect(actRes.status).toBe(200);
-    expect(actRes.body.data.items.length).toBeGreaterThan(0);
+    const companyRes = await request(app)
+      .get("/jobs?company=acme")
+      .set(...auth);
+    expect(companyRes.body.meta.total).toBe(2);
+
+    const pageRes = await request(app)
+      .get("/jobs?page=2&pageSize=2")
+      .set(...auth);
+    expect(pageRes.body.data).toHaveLength(1);
+    expect(pageRes.body.meta.total).toBe(3);
   });
 
   it("blocks access to another user's job", async () => {
@@ -79,15 +96,71 @@ describe("Jobs endpoints", () => {
       company: "SecretCorp",
       role: "Role",
       status: "APPLIED",
-      starred: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
 
-    const token = signAccessToken({ sub: "u1", email: "owner@x.com" });
+    const auth = authHeader("u1", "owner@x.com");
+    const patchRes = await request(app)
+      .patch("/jobs/job-1")
+      .set(...auth)
+      .send({ status: "OFFER" });
+    expect(patchRes.status).toBe(404);
+
     const deleteRes = await request(app)
       .delete("/jobs/job-1")
-      .set("Authorization", `Bearer ${token}`);
+      .set(...auth);
     expect(deleteRes.status).toBe(404);
+
+    const listRes = await request(app)
+      .get("/jobs")
+      .set(...auth);
+    expect(listRes.body.data).toHaveLength(0);
+  });
+
+  it("requires authentication", async () => {
+    const res = await request(app).get("/jobs");
+    expect(res.status).toBe(401);
+  });
+
+  it("summarises metrics for the caller", async () => {
+    const auth = authHeader("u1", "owner@x.com");
+    for (const status of ["APPLIED", "APPLIED", "INTERVIEW", "OFFER"]) {
+      await request(app)
+        .post("/jobs")
+        .set(...auth)
+        .send({ company: "Acme", role: "Engineer", status });
+    }
+
+    const res = await request(app)
+      .get("/jobs/metrics/summary")
+      .set(...auth);
+    expect(res.status).toBe(200);
+    expect(res.body.data).toEqual({
+      totalApplications: 4,
+      stageDistribution: { APPLIED: 2, INTERVIEW: 1, OFFER: 1 },
+      interviewRate: 25,
+      offerRate: 25,
+    });
+  });
+
+  it("returns zeroed metrics when there are no applications", async () => {
+    const res = await request(app)
+      .get("/jobs/metrics/summary")
+      .set(...authHeader("u1", "owner@x.com"));
+    expect(res.body.data).toEqual({
+      totalApplications: 0,
+      stageDistribution: {},
+      interviewRate: 0,
+      offerRate: 0,
+    });
+  });
+
+  it("rejects invalid job input", async () => {
+    const res = await request(app)
+      .post("/jobs")
+      .set(...authHeader("u1", "owner@x.com"))
+      .send({ company: "", role: "Engineer" });
+    expect(res.status).toBe(400);
   });
 });

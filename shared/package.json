@@ -3,22 +3,17 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "src/index.js",
   "scripts": {
-    "prepare": "npm run build",
-    "build": "tsc -p tsconfig.json",
-    "lint": "eslint src --ext .ts",
-    "test": "echo \"No shared tests yet\""
+    "lint": "eslint src",
+    "test": "vitest run"
   },
   "dependencies": {
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@types/node": "^24.6.1",
-    "@typescript-eslint/eslint-plugin": "^8.46.1",
-    "@typescript-eslint/parser": "^8.46.1",
     "eslint": "^9.37.0",
-    "typescript": "^5.9.3"
+    "fast-check": "^4.9.0",
+    "vitest": "^3.2.4"
   }
 }

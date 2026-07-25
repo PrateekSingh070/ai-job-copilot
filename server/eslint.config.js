@@ -1,33 +1,29 @@
 import js from "@eslint/js";
-import tseslint from "@typescript-eslint/eslint-plugin";
-import tsParser from "@typescript-eslint/parser";
 
 export default [
   js.configs.recommended,
   {
-    files: ["**/*.ts"],
+    files: ["**/*.js", "**/*.jsx"],
     languageOptions: {
-      parser: tsParser,
-      parserOptions: {
-        project: "./tsconfig.eslint.json",
-      },
       globals: {
         console: "readonly",
         process: "readonly",
         global: "readonly",
         fetch: "readonly",
+        URL: "readonly",
+        URLSearchParams: "readonly",
+        AbortController: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+        setInterval: "readonly",
+        clearInterval: "readonly",
+        Buffer: "readonly",
+        TextEncoder: "readonly",
+        TextDecoder: "readonly",
       },
     },
-    plugins: {
-      "@typescript-eslint": tseslint,
-    },
     rules: {
-      "@typescript-eslint/no-explicit-any": "off",
-      "@typescript-eslint/no-unused-vars": [
-        "error",
-        { argsIgnorePattern: "^_" },
-      ],
-      "no-unused-vars": "off",
+      "no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
       "no-console": "off",
     },
   },

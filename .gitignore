@@ -12,3 +12,7 @@ coverage
 test-results
 .playwright-mcp/
 .vercel
+
+# TS->JS migration temporary artifacts (dev-only, not shipped)
+migration-inventory.json
+migration-export-baseline.json

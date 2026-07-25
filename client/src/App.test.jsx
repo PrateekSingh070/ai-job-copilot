@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
+import { clearAccessToken } from "./lib/api";
 import { AuthProvider } from "./providers/AuthProvider";
 
 const { getMock, postMock, patchMock, deleteMock } = vi.hoisted(() => ({
@@ -12,14 +13,24 @@ const { getMock, postMock, patchMock, deleteMock } = vi.hoisted(() => ({
   deleteMock: vi.fn(),
 }));
 
-vi.mock("./lib/api", () => ({
-  api: {
-    get: getMock,
-    post: postMock,
-    patch: patchMock,
-    delete: deleteMock,
-  },
-}));
+vi.mock("./lib/api", () => {
+  let token = null;
+  return {
+    api: {
+      get: getMock,
+      post: postMock,
+      patch: patchMock,
+      delete: deleteMock,
+    },
+    getAccessToken: () => token,
+    setAccessToken: (next) => {
+      token = next ?? null;
+    },
+    clearAccessToken: () => {
+      token = null;
+    },
+  };
+});
 
 function renderApp() {
   const queryClient = new QueryClient();
@@ -36,7 +47,8 @@ function renderApp() {
 
 describe("Frontend auth + job tracker flow", () => {
   beforeEach(() => {
-    localStorage.clear();
+    // The access token is a module-level variable, so it outlives a render.
+    clearAccessToken();
     getMock.mockReset();
     postMock.mockReset();
     patchMock.mockReset();
@@ -76,6 +88,11 @@ describe("Frontend auth + job tracker flow", () => {
     });
 
     postMock.mockImplementation((url) => {
+      // No refresh cookie in a fresh browser, so the boot-time silent refresh
+      // fails and the app starts logged out.
+      if (url === "/auth/refresh") {
+        return Promise.reject(new Error("no refresh cookie"));
+      }
       if (url === "/auth/login") {
         return Promise.resolve({
           data: {

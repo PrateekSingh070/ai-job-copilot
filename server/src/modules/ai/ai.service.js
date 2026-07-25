@@ -1,12 +1,12 @@
 import { z } from "zod";
-import { ApiError } from "../../utils/ApiError.js";
+import { ApiError } from "../../utils/http.js";
 import { env } from "../../config/env.js";
-import { sanitizeForAiPrompt } from "../../utils/aiPromptSanitize.js";
+import { sanitizeForAiPrompt } from "../../utils/sanitize.js";
 import {
   extractFirstJsonObject,
   parseKeywords,
   scoreMatch,
-} from "../../utils/aiTextUtils.js";
+} from "./aiTextUtils.js";
 
 // Shape we require back from the model. Anything else is rejected, so callers
 // always get the same output whether it came from a provider or the mock.

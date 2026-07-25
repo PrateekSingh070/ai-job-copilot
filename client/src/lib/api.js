@@ -1,8 +1,51 @@
 import axios from "axios";
-import { clearAccessToken, getAccessToken, setAccessToken } from "./token";
-import { resolveApiBaseUrl } from "./apiBaseUrl";
+
+// Everything about talking to the API lives here: where it is, how the access
+// token is held, and how an expired token is renewed transparently.
+
+/**
+ * API origin for axios. `VITE_API_URL` (build-time) wins when set.
+ * When the SPA is served from the default Vercel hosts for this project,
+ * fall back to the paired API deployment so production works without
+ * extra dashboard configuration.
+ */
+function resolveApiBaseUrl() {
+  const explicit = import.meta.env.VITE_API_URL?.trim();
+  if (explicit) {
+    return explicit.replace(/\/$/, "");
+  }
+  if (typeof window !== "undefined" && import.meta.env.PROD) {
+    const { protocol, hostname } = window.location;
+    if (
+      protocol === "https:" &&
+      hostname.endsWith(".vercel.app") &&
+      hostname.startsWith("ai-job-copilot-client")
+    ) {
+      return "https://ai-job-copilot-api.vercel.app";
+    }
+  }
+  return "http://localhost:4000";
+}
 
 const API_URL = resolveApiBaseUrl();
+
+// The access token lives in a module variable and is never written to
+// localStorage or a script-readable cookie, so an XSS payload has nothing to
+// steal. The trade-off is that a page reload starts with no token, so
+// AuthProvider exchanges the httpOnly refresh cookie for a new one on boot.
+let accessToken = null;
+
+export function getAccessToken() {
+  return accessToken;
+}
+
+export function setAccessToken(token) {
+  accessToken = token ?? null;
+}
+
+export function clearAccessToken() {
+  accessToken = null;
+}
 
 export const api = axios.create({
   baseURL: API_URL,
@@ -19,7 +62,9 @@ api.interceptors.request.use((config) => {
 
 // Only one token refresh should be in flight at a time. While it runs, other
 // requests that hit a 401 wait in `queue` and are replayed once we have a
-// fresh token (or rejected together if the refresh fails).
+// fresh token (or rejected together if the refresh fails). Without this, every
+// concurrent 401 would refresh separately, and since the server rotates and
+// revokes on each refresh, all but one would fail and log the user out.
 let refreshing = false;
 let queue = [];
 

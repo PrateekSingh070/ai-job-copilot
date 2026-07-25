@@ -1,3 +1,7 @@
+// Text helpers used only by the AI module: the first two power the offline
+// mock provider, the third pulls JSON back out of a model's reply.
+
+/** Rough keyword extraction: long-ish words, deduped, capped at 12. */
 export function parseKeywords(jobDescription) {
   const words = jobDescription
     .toLowerCase()
@@ -7,6 +11,7 @@ export function parseKeywords(jobDescription) {
   return [...new Set(words)].slice(0, 12);
 }
 
+/** Percentage of job keywords that appear anywhere in the resume. */
 export function scoreMatch(resumeText, keywords) {
   const lowered = resumeText.toLowerCase();
   const hits = keywords.filter((kw) => lowered.includes(kw)).length;
@@ -20,6 +25,11 @@ export function scoreMatch(resumeText, keywords) {
   };
 }
 
+/**
+ * Models are asked for bare JSON and routinely return it wrapped in a ```json
+ * fence or prefixed with prose. Try the fence, then the outermost braces, then
+ * give up and let JSON.parse report the failure.
+ */
 export function extractFirstJsonObject(raw) {
   const fencedMatch = raw.match(/```json\s*([\s\S]*?)```/i);
   if (fencedMatch?.[1]) return fencedMatch[1].trim();

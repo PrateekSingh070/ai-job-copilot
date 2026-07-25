@@ -1,9 +1,8 @@
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import { aiResumeTailorSchema } from "../../shared/index.js";
-import { requireAuth } from "../../middleware/auth.js";
-import { validateBody } from "../../middleware/validate.js";
-import { sendError, sendSuccess } from "../../utils/response.js";
+import { requireAuth, validateBody } from "../../middleware/index.js";
+import { sendError, sendSuccess } from "../../utils/http.js";
 import { generateResumeTailor } from "./ai.service.js";
 import { env } from "../../config/env.js";
 

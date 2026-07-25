@@ -1,26 +1,44 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { api } from "../lib/api";
-import { clearAccessToken, getAccessToken, setAccessToken } from "../lib/token";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  api,
+  clearAccessToken,
+  getAccessToken,
+  setAccessToken,
+} from "../lib/api";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  // Set as soon as a sign-in or sign-out happens. The boot-time refresh below
+  // may still be in flight at that point, and its result is stale the moment
+  // the user acts, so every await in it checks this before touching state.
+  const supersededRef = useRef(false);
 
-  // On first load, restore the session from a stored access token (if any) by
-  // asking the API who the current user is.
+  // On first load there is never an access token in memory, so trade the
+  // httpOnly refresh cookie for a fresh one before asking who the user is.
+  // No cookie means no session, and we fall through to the login screen.
   useEffect(() => {
-    const token = getAccessToken();
-    if (!token) {
-      setLoading(false);
-      return;
-    }
     const bootstrap = async () => {
       try {
+        if (!getAccessToken()) {
+          const refreshed = await api.post("/auth/refresh");
+          if (supersededRef.current) return;
+          setAccessToken(refreshed.data.data.accessToken);
+        }
         const me = await api.get("/auth/me");
+        if (supersededRef.current) return;
         setUser(me.data.data);
       } catch {
+        if (supersededRef.current) return;
         clearAccessToken();
         setUser(null);
       } finally {
@@ -47,16 +65,19 @@ export function AuthProvider({ children }) {
       user,
       loading,
       async login(email, password) {
+        supersededRef.current = true;
         const res = await api.post("/auth/login", { email, password });
         setAccessToken(res.data.data.accessToken);
         setUser(res.data.data.user);
       },
       async register(name, email, password) {
+        supersededRef.current = true;
         const res = await api.post("/auth/register", { name, email, password });
         setAccessToken(res.data.data.accessToken);
         setUser(res.data.data.user);
       },
       async logout() {
+        supersededRef.current = true;
         try {
           await api.post("/auth/logout");
         } catch {

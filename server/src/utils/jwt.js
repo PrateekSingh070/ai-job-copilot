@@ -9,9 +9,15 @@ export function signAccessToken(payload) {
 }
 
 export function signRefreshToken(payload) {
-  return jwt.sign(payload, env.JWT_REFRESH_SECRET, {
-    expiresIn: `${env.REFRESH_TOKEN_TTL_DAYS}d`,
-  });
+  // `jti` makes every refresh token unique. Without it, two refreshes for the
+  // same user inside one second produce identical payloads (JWT `iat` is in
+  // whole seconds), so the tokens hash to the same value and the unique index
+  // on RefreshToken.tokenHash rejects the second one.
+  return jwt.sign(
+    { ...payload, jti: crypto.randomUUID() },
+    env.JWT_REFRESH_SECRET,
+    { expiresIn: `${env.REFRESH_TOKEN_TTL_DAYS}d` },
+  );
 }
 
 export function verifyAccessToken(token) {

@@ -1,17 +1,18 @@
 import { Router } from "express";
 import { loginSchema, registerSchema } from "../../shared/index.js";
-import { validateBody } from "../../middleware/validate.js";
+import {
+  authCredentialsLimiter,
+  requireAuth,
+  validateBody,
+} from "../../middleware/index.js";
 import {
   loginUser,
   registerUser,
   revokeRefreshToken,
   rotateRefreshToken,
 } from "./auth.service.js";
-import { sendSuccess } from "../../utils/response.js";
-import { ApiError } from "../../utils/ApiError.js";
-import { requireAuth } from "../../middleware/auth.js";
+import { ApiError, sendSuccess } from "../../utils/http.js";
 import { prisma } from "../../db/prisma.js";
-import { authCredentialsLimiter } from "../../middleware/authRateLimit.js";
 import {
   clearRefreshTokenCookie,
   refreshCookieName,

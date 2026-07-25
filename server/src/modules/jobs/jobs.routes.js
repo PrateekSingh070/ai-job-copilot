@@ -5,10 +5,12 @@ import {
   jobQuerySchema,
 } from "../../shared/index.js";
 import { prisma } from "../../db/prisma.js";
-import { requireAuth } from "../../middleware/auth.js";
-import { validateBody, validateQuery } from "../../middleware/validate.js";
-import { sendSuccess } from "../../utils/response.js";
-import { ApiError } from "../../utils/ApiError.js";
+import {
+  requireAuth,
+  validateBody,
+  validateQuery,
+} from "../../middleware/index.js";
+import { ApiError, sendSuccess } from "../../utils/http.js";
 import { sanitizeText } from "../../utils/sanitize.js";
 
 const router = Router();

@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "../../db/prisma.js";
-import { ApiError } from "../../utils/ApiError.js";
+import { ApiError } from "../../utils/http.js";
 import {
   hashToken,
   signAccessToken,

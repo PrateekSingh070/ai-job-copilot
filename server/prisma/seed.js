@@ -1,15 +1,12 @@
-import "dotenv/config";
 import bcrypt from "bcryptjs";
-import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
+// Reuse the app's client so the seed gets the same validated env loading.
+// Building a second client here meant a missing DATABASE_URL silently became
+// an empty connection string instead of a readable startup error.
+import { prisma } from "../src/db/prisma.js";
 
 // Seeds one demo user plus a few applications so the dashboard has data.
 // Safe to run more than once: the user is upserted and jobs are only added
 // when the user has none.
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL ?? "",
-});
-const prisma = new PrismaClient({ adapter });
 
 async function main() {
   const passwordHash = await bcrypt.hash("DemoPass123!", 12);

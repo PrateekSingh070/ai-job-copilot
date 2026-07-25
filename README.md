@@ -7,8 +7,6 @@ use one AI feature that rewrites resume bullets for a specific job posting.
 **Stack:** React (Vite) + Tailwind on the frontend, Express + Prisma + PostgreSQL on the
 backend, Zod for validation, JWT for auth. Everything is plain JavaScript (ESM).
 
-## How it fits together
-
 ```
 Browser (React)  --HTTP-->  Express API  --Prisma-->  PostgreSQL
                                  |
@@ -17,6 +15,43 @@ Browser (React)  --HTTP-->  Express API  --Prisma-->  PostgreSQL
 
 - `client/` — the React single-page app
 - `server/` — the REST API and database layer
+
+## Documentation
+
+| Document | What's in it |
+|---|---|
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Diagrams for the system, the middleware chain, the auth flow and the data model |
+| [docs/AI_LAYER.md](docs/AI_LAYER.md) | How `POST /ai/resume-tailor` works, and why each step exists |
+| [docs/INTERVIEW_NOTES.md](docs/INTERVIEW_NOTES.md) | A walkthrough script, an end-to-end request trace, and known limitations |
+| [docs/FRONTEND_INTERVIEW.md](docs/FRONTEND_INTERVIEW.md) | The client in depth: data fetching, auth, optimistic updates, and the weak spots |
+
+## Running it
+
+```bash
+cp .env.example .env      # then set DATABASE_URL and the two JWT secrets
+npm install
+
+# Any PostgreSQL 16 will do; this is the quickest:
+docker run -d --name copilot-db -p 5432:5432 \
+  -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=copilot postgres:16-alpine
+
+npm --prefix server run prisma:migrate
+npm --prefix server run prisma:seed
+
+npm run dev          # client on :5173, API on :4000
+```
+
+Demo login: `demo@copilot.local` / `DemoPass123!`
+
+The AI feature works out of the box with no API key: `AI_PROVIDER` defaults to `mock`,
+a deterministic local implementation. Set it to `openai` or `anthropic` with the matching
+key to use a real model.
+
+```bash
+npm test     # 30 tests (26 server, 4 client)
+npm run lint
+npm run build
+```
 
 ## API
 
@@ -38,62 +73,8 @@ Browser (React)  --HTTP-->  Express API  --Prisma-->  PostgreSQL
 Every response uses the same envelope: `{ success, data, meta? }` on success and
 `{ success: false, error: { code, message } }` on failure.
 
-## Auth design (the part worth explaining)
-
-- **Access token**: short-lived JWT, returned in the response body and held in memory
-  on the client. Never written to `localStorage`.
-- **Refresh token**: long-lived, sent as an `httpOnly` cookie so JavaScript can't read it.
-- **Rotation**: each refresh revokes the old token row and records `replacedBy`, so a
-  replayed token is detectable. See `server/src/modules/auth/auth.service.js`.
-- On a `401`, the client calls `/auth/refresh` once and retries the original request.
-  Concurrent 401s queue behind that single refresh — see `client/src/lib/api.js`.
-
-## Data model
-
-Three tables (`server/prisma/schema.prisma`):
-
-- `User` — name, email, password hash
-- `RefreshToken` — one row per issued refresh token, for rotation and revocation
-- `JobApplication` — company, role, status (`APPLIED`/`INTERVIEW`/`OFFER`/`REJECTED`), notes
-
 Ownership is enforced on every job route: queries always filter by `userId`, and a job
 belonging to someone else returns `404` (not `403`) so we don't leak which ids exist.
-
-## The AI feature
-
-`POST /ai/resume-tailor` takes a resume, a job description and a target role, then returns
-rewritten bullets, extracted keywords, a match score and an explanation.
-
-`AI_PROVIDER` selects the backend:
-
-- `mock` (default) — a deterministic local implementation, so the app and its tests run
-  with no API key
-- `openai` / `anthropic` — real calls; the response is parsed and validated against a Zod
-  schema, so callers get the same shape either way
-
-Free text is sanitized and length-capped before it goes into a prompt
-(`server/src/utils/aiPromptSanitize.js`).
-
-## Running it
-
-```bash
-cp .env.example .env
-npm install
-
-# start Postgres, then:
-npm --prefix server run prisma:migrate
-npm --prefix server run prisma:seed
-
-npm run dev          # client on :5173, API on :4000
-```
-
-Demo login: `demo@copilot.local` / `DemoPass123!`
-
-```bash
-npm test     # 24 tests (20 server, 4 client)
-npm run lint
-npm run build
-```
 
 ## Layout
 
@@ -103,7 +84,8 @@ client/src
   App.jsx                   Routes
   providers/AuthProvider    Login/register/logout + session bootstrap
   routes/ProtectedRoute     Redirects anonymous users to /login
-  lib/api.js                Axios instance + refresh-on-401 retry
+  lib/api.js                Base URL, access token, axios + refresh-on-401 retry
+  lib/dashboardHelpers.js   Pure helpers shared by the dashboard components
   pages/LoginPage           Email/password sign in
   pages/RegisterPage        Account creation
   pages/DashboardPage       Metrics, add-job form, filters, pagination, tabs
@@ -117,10 +99,12 @@ server/src
   app.js                    Express setup: security, CORS, logging, rate limit, routes
   config/env.js             Validates environment variables on startup
   db/prisma.js              Prisma client singleton
-  middleware/               auth (JWT), validate (Zod), errorHandler, requestId, rate limit
+  middleware/index.js       requestId, auth, validation, rate limit, error handling
   modules/auth/             Register, login, refresh rotation, logout
   modules/jobs/             Job CRUD, filtering, metrics
   modules/ai/               Resume tailoring (mock + real providers)
   shared/index.js           Zod schemas for every request shape
-  utils/                    ApiError, response helpers, JWT, sanitizers
+  utils/http.js             ApiError + the response envelope
+  utils/jwt.js              Sign/verify access and refresh tokens
+  utils/sanitize.js         HTML stripping for storage and for prompts
 ```

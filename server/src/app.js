@@ -7,12 +7,15 @@ import cookieParser from "cookie-parser";
 import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 import { env } from "./config/env.js";
-import { requestIdMiddleware } from "./middleware/requestId.js";
-import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
+import {
+  errorHandler,
+  notFoundHandler,
+  requestIdMiddleware,
+} from "./middleware/index.js";
 import { authRouter } from "./modules/auth/auth.routes.js";
 import { jobsRouter } from "./modules/jobs/jobs.routes.js";
 import { aiRouter } from "./modules/ai/ai.routes.js";
-import { sendSuccess } from "./utils/response.js";
+import { ApiError, sendSuccess } from "./utils/http.js";
 
 /** Paths handled by the API — other GET requests receive the SPA shell. */
 function isApiPath(requestPath) {
@@ -46,6 +49,9 @@ const allowedOrigins = env.CORS_ORIGIN.split(",").map((origin) =>
   origin.trim(),
 );
 
+// First, so every log line and every error response downstream — including a
+// rejected CORS origin — can be traced to the same id.
+app.use(requestIdMiddleware);
 app.use(helmet());
 app.use(
   cors({
@@ -59,12 +65,15 @@ app.use(
         callback(null, true);
         return;
       }
-      callback(new Error("CORS origin not allowed"));
+      // An ApiError so a blocked origin is a clean 403 instead of falling
+      // through to the generic 500 handler and logging a stack trace.
+      callback(
+        new ApiError(403, "CORS_ORIGIN_NOT_ALLOWED", "Origin not allowed"),
+      );
     },
     credentials: true,
   }),
 );
-app.use(requestIdMiddleware);
 app.use(
   morgan(":method :url :status - :response-time ms", {
     skip: (req) => req.url.includes("health"),

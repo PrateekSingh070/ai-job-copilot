@@ -1,15 +1,30 @@
-import sanitizeHtml from "sanitize-html";
-
 // Two sanitizers for two destinations. `sanitizeText` cleans values on their
 // way into the database; `sanitizeForAiPrompt` cleans values on their way into
 // an LLM prompt, which needs stricter handling.
+//
+// Implemented without sanitize-html: that package's CJS entry `require()`s
+// htmlparser2, which is ESM-only, and Vercel's serverless loader crashes with
+// ERR_REQUIRE_ESM. We only ever strip every tag, so a small local helper is
+// enough and keeps the serverless bundle free of that incompatibility.
+
+/** Strip every HTML tag and decode the common named entities. */
+function stripHtml(input) {
+  return String(input ?? "")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#(\d+);/g, (_, code) =>
+      String.fromCodePoint(Number.parseInt(code, 10)),
+    );
+}
 
 /** Strips HTML from free text before it is stored. */
 export function sanitizeText(input) {
-  return sanitizeHtml(input, {
-    allowedTags: [],
-    allowedAttributes: {},
-  }).trim();
+  return stripHtml(input).trim();
 }
 
 /**
@@ -17,10 +32,7 @@ export function sanitizeText(input) {
  * interpolated into an LLM prompt, then caps the length to bound token cost.
  */
 export function sanitizeForAiPrompt(input, maxLen) {
-  const stripped = sanitizeHtml(input, {
-    allowedTags: [],
-    allowedAttributes: {},
-  });
+  const stripped = stripHtml(input);
   // Strip C0 controls except TAB/LF/CR; keep newlines for resume/job text fidelity.
   /* eslint-disable no-control-regex */
   const noControls = stripped.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");

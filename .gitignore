@@ -11,6 +11,7 @@ server/dist
 coverage
 test-results
 .playwright-mcp/
+.kiro/
 .vercel
 
 # TS->JS migration temporary artifacts (dev-only, not shipped)

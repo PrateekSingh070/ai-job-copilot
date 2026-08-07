@@ -17,3 +17,6 @@ test-results
 # TS->JS migration temporary artifacts (dev-only, not shipped)
 migration-inventory.json
 migration-export-baseline.json
+
+# Local dev server output
+dev.log

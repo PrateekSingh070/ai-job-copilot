@@ -66,3 +66,53 @@ export const aiResumeTailorSchema = z.object({
   targetRole: z.string().min(2).max(120),
   tone: z.enum(["concise", "confident", "impactful"]).default("impactful"),
 });
+
+export const resumeUpsertSchema = z.object({
+  title: z.string().min(1).max(120).optional(),
+  content: z.string().min(50).max(20000),
+});
+
+export const aiCoverLetterSchema = z.object({
+  jobDescription: z.string().min(50).max(20000),
+  company: z.string().min(1).max(120),
+  role: z.string().min(1).max(120),
+  resumeText: z.string().min(50).max(20000).optional(),
+  tone: z
+    .enum(["professional", "enthusiastic", "concise"])
+    .default("professional"),
+  hiringManager: z.string().max(120).optional(),
+});
+
+export const aiSkillGapSchema = z.object({
+  jobDescription: z.string().min(50).max(20000),
+  resumeText: z.string().min(50).max(20000).optional(),
+  targetRole: z.string().min(2).max(120).optional(),
+});
+
+// Chat is stateless: the client owns the transcript and replays it. Capping
+// history bounds prompt size — without it a long conversation grows the token
+// bill on every turn.
+export const aiChatSchema = z.object({
+  message: z.string().min(1).max(2000),
+  history: z
+    .array(
+      z.object({
+        role: z.enum(["user", "assistant"]),
+        content: z.string().min(1).max(4000),
+      }),
+    )
+    .max(10)
+    .default([]),
+});
+
+// Import accepts a URL to fetch *or* pasted text, never both. Sites that block
+// bots (LinkedIn, Indeed) are the common case for the paste path, so it isn't a
+// fallback so much as an equal partner.
+export const aiImportJobSchema = z
+  .object({
+    url: z.url().max(2000).optional(),
+    rawText: z.string().min(50).max(20000).optional(),
+  })
+  .refine((value) => Boolean(value.url) !== Boolean(value.rawText), {
+    message: "Provide exactly one of url or rawText",
+  });

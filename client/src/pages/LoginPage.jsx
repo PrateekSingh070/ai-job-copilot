@@ -8,6 +8,7 @@ import {
   authLinkClass,
   authPageClass,
   buttonPrimaryClass,
+  buttonSecondaryClass,
   inputClass,
   labelClass,
 } from "../ui/theme";
@@ -15,11 +16,21 @@ import { BriefcaseIcon } from "../ui/icons";
 
 // Email + password sign in. On success AuthProvider stores the access token
 // in memory and we hand over to the dashboard.
+
+// Seed data for the public demo account. Kept as a constant that the user has
+// to opt into rather than as the form's initial state: prefilling real
+// credentials makes every reviewer wonder whether they're a leaked secret, and
+// it means the login form can never be tested empty.
+const DEMO_CREDENTIALS = {
+  email: "demo@copilot.local",
+  password: "DemoPass123!",
+};
+
 export function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("demo@copilot.local");
-  const [password, setPassword] = useState("DemoPass123!");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -95,6 +106,19 @@ export function LoginPage() {
             type="submit"
           >
             {submitting ? "Signing in…" : "Sign in"}
+          </button>
+          <button
+            data-testid="login-demo"
+            className={`${buttonSecondaryClass} w-full`}
+            disabled={submitting}
+            type="button"
+            onClick={() => {
+              setEmail(DEMO_CREDENTIALS.email);
+              setPassword(DEMO_CREDENTIALS.password);
+              setError("");
+            }}
+          >
+            Use demo account
           </button>
         </form>
 

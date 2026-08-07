@@ -13,6 +13,8 @@ export default [
         URL: "readonly",
         URLSearchParams: "readonly",
         AbortController: "readonly",
+        AbortSignal: "readonly",
+        Headers: "readonly",
         setTimeout: "readonly",
         clearTimeout: "readonly",
         setInterval: "readonly",

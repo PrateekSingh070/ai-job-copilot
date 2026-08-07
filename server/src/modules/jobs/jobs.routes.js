@@ -12,6 +12,7 @@ import {
 } from "../../middleware/index.js";
 import { ApiError, sendSuccess } from "../../utils/http.js";
 import { sanitizeText } from "../../utils/sanitize.js";
+import { indexJobSafely } from "../ai/ragIndex.js";
 
 const router = Router();
 // Every job route needs a logged-in user; `req.user.sub` is the owner id.
@@ -100,6 +101,12 @@ router.post("/", validateBody(jobCreateSchema), async (req, res) => {
   const created = await prisma.jobApplication.create({
     data: { userId: req.user.sub, ...buildJobData(req.body) },
   });
+
+  // Fire-and-forget: the embedding is derived data, so a provider outage must
+  // not turn "save my application" into a failed request. `indexJobSafely`
+  // swallows and logs, and `POST /ai/reindex` can always rebuild what's missed.
+  void indexJobSafely(created);
+
   return sendSuccess(res, created, 201);
 });
 
@@ -110,6 +117,12 @@ router.patch("/:id", validateBody(jobPatchSchema), async (req, res) => {
     where: { id: existing.id },
     data: buildJobData(req.body),
   });
+
+  // Re-index on edit. A status-only change (the Kanban drag) produces the same
+  // document hash, so `indexJob` skips the embedding call rather than paying
+  // for one on every card move.
+  void indexJobSafely(updated);
+
   return sendSuccess(res, updated);
 });
 

@@ -1,11 +1,18 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { useAuth } from "../providers/AuthProvider";
+import { useDebouncedValue } from "../lib/useDebouncedValue.js";
 import {
   buttonPrimaryClass,
   buttonSecondaryClass,
   inputClass,
+  labelClass,
   panelClass,
   sectionHeaderClass,
 } from "../ui/theme.js";
@@ -13,8 +20,12 @@ import {
   BriefcaseIcon,
   CalendarIcon,
   ChartBarIcon,
+  ChatBubbleIcon,
   DocumentTextIcon,
   SparklesIcon,
+  UserIcon,
+  EnvelopeIcon,
+  AcademicCapIcon,
 } from "../ui/icons";
 import {
   extractApiErrorMessage,
@@ -24,8 +35,44 @@ import {
 import { MetricCard } from "../components/MetricCard.jsx";
 import { KanbanBoard } from "../components/KanbanBoard.jsx";
 import { ResumeTailor } from "../components/ResumeTailor.jsx";
+import { ResumeProfile } from "../components/ResumeProfile.jsx";
+import { CoverLetter } from "../components/CoverLetter.jsx";
+import { SkillGap } from "../components/SkillGap.jsx";
+import { JobImport } from "../components/JobImport.jsx";
+import { PipelineChat } from "../components/PipelineChat.jsx";
+import { TabBar } from "../components/TabBar.jsx";
 
 const PAGE_SIZE = 20;
+
+// Every column the API accepts, so a reset clears imported values too.
+const EMPTY_JOB = {
+  company: "",
+  role: "",
+  status: "APPLIED",
+  location: "",
+  salaryRange: "",
+  jobUrl: "",
+  jobDescription: "",
+  notes: "",
+};
+
+// Tab definitions live outside the component so the array identity is stable.
+const TABS = [
+  { id: "jobs", label: "Tracker", icon: BriefcaseIcon },
+  { id: "chat", label: "Ask", icon: ChatBubbleIcon },
+  { id: "profile", label: "Profile", icon: UserIcon },
+  { id: "letter", label: "Cover Letter", icon: EnvelopeIcon },
+  { id: "gap", label: "Skill Gap", icon: AcademicCapIcon },
+  { id: "tailor", label: "Resume Tailor", icon: DocumentTextIcon },
+];
+
+const AI_TAB_PANELS = {
+  chat: <PipelineChat />,
+  profile: <ResumeProfile />,
+  letter: <CoverLetter />,
+  gap: <SkillGap />,
+  tailor: <ResumeTailor />,
+};
 
 export function DashboardPage() {
   const { user, logout } = useAuth();
@@ -34,19 +81,38 @@ export function DashboardPage() {
   const [companyFilter, setCompanyFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [page, setPage] = useState(1);
-  const [newJob, setNewJob] = useState({
-    company: "",
-    role: "",
-    status: "APPLIED",
-  });
+  const [showJobDetails, setShowJobDetails] = useState(false);
+  const [newJob, setNewJob] = useState(EMPTY_JOB);
+
+  /**
+   * Copy an extraction into the add-job form. Only non-empty fields overwrite,
+   * so a partial extraction can't wipe something the user already typed, and
+   * the details pane opens so the imported description is visible rather than
+   * silently staged behind a collapsed toggle.
+   */
+  function applyImportedJob(extracted) {
+    setNewJob((prev) => {
+      const next = { ...prev };
+      for (const key of Object.keys(EMPTY_JOB)) {
+        if (key === "status") continue;
+        if (extracted[key]) next[key] = extracted[key];
+      }
+      return next;
+    });
+    setShowJobDetails(true);
+  }
+
+  // The raw input drives the textbox; the debounced value drives the query key,
+  // so typing a company name is one request instead of one per keystroke.
+  const debouncedCompany = useDebouncedValue(companyFilter, 300);
 
   // GET /jobs — refetches whenever a filter or the page changes.
   const jobsQuery = useQuery({
-    queryKey: ["jobs", companyFilter, statusFilter, page],
+    queryKey: ["jobs", debouncedCompany, statusFilter, page],
     queryFn: async () => {
       const res = await api.get("/jobs", {
         params: {
-          company: companyFilter || undefined,
+          company: debouncedCompany || undefined,
           status: statusFilter || undefined,
           page,
           pageSize: PAGE_SIZE,
@@ -54,6 +120,9 @@ export function DashboardPage() {
       });
       return res.data;
     },
+    // Keep the previous page on screen while the next one loads, instead of
+    // flashing the loading state on every pagination click.
+    placeholderData: keepPreviousData,
   });
 
   // GET /jobs/metrics/summary — the four numbers above the board.
@@ -69,9 +138,18 @@ export function DashboardPage() {
   };
 
   const createJob = useMutation({
-    mutationFn: async () => api.post("/jobs", newJob),
+    mutationFn: async () => {
+      // Strip empty strings so optional fields arrive as undefined rather than
+      // "", which would fail the server's z.url() check on jobUrl.
+      const payload = {};
+      for (const [k, v] of Object.entries(newJob)) {
+        if (v !== "") payload[k] = v;
+      }
+      return api.post("/jobs", payload);
+    },
     onSuccess: () => {
-      setNewJob({ company: "", role: "", status: "APPLIED" });
+      setNewJob(EMPTY_JOB);
+      setShowJobDetails(false);
       refreshJobs();
     },
   });
@@ -192,84 +270,167 @@ export function DashboardPage() {
           />
         </div>
 
-        {/* Tracker / Resume Tailor tabs */}
-        <div className="mt-5 inline-flex w-full rounded-2xl border border-zinc-800/90 bg-zinc-900/60 p-1 shadow-lift sm:w-auto">
-          {[
-            { id: "jobs", label: "Tracker", icon: BriefcaseIcon },
-            { id: "ai", label: "Resume Tailor", icon: DocumentTextIcon },
-          ].map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition sm:flex-none sm:px-6 ${
-                activeTab === id
-                  ? "bg-gradient-to-r from-cyan-500 to-teal-500 text-zinc-950 shadow-md shadow-cyan-950/40"
-                  : "text-zinc-400 hover:bg-zinc-800/80 hover:text-zinc-200"
-              }`}
-              onClick={() => setActiveTab(id)}
-            >
-              <Icon className="h-4 w-4" />
-              {label}
-            </button>
-          ))}
-        </div>
+        {/* Tracker / Profile / Cover Letter / Skill Gap / Resume Tailor tabs */}
+        <TabBar tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
 
-        {activeTab === "ai" ? (
-          <ResumeTailor />
+        {activeTab !== "jobs" ? (
+          AI_TAB_PANELS[activeTab]
         ) : (
           <section className="mt-4 space-y-4 sm:mt-6">
+            {/* Import from a URL or pasted text — prefills the form below */}
+            <JobImport onExtracted={applyImportedJob} />
+
             {/* Add job — POST /jobs */}
             <form
-              className={`${panelClass} grid gap-2 sm:gap-3 md:grid-cols-4`}
+              className={panelClass}
               onSubmit={(e) => {
                 e.preventDefault();
                 createJob.mutate();
               }}
             >
-              <input
-                data-testid="add-job-company"
-                placeholder="Company"
-                className={inputClass}
-                value={newJob.company}
-                onChange={(e) =>
-                  setNewJob((p) => ({ ...p, company: e.target.value }))
-                }
-                required
-              />
+              <div className="grid gap-2 sm:gap-3 md:grid-cols-4">
+                <label className="block">
+                  <span className={labelClass}>Company</span>
+                  <input
+                    data-testid="add-job-company"
+                    placeholder="Acme Labs"
+                    className={inputClass}
+                    value={newJob.company}
+                    onChange={(e) =>
+                      setNewJob((p) => ({ ...p, company: e.target.value }))
+                    }
+                    required
+                  />
+                </label>
 
-              <input
-                data-testid="add-job-role"
-                placeholder="Role"
-                className={inputClass}
-                value={newJob.role}
-                onChange={(e) =>
-                  setNewJob((p) => ({ ...p, role: e.target.value }))
-                }
-                required
-              />
+                <label className="block">
+                  <span className={labelClass}>Role</span>
+                  <input
+                    data-testid="add-job-role"
+                    placeholder="Full Stack Engineer"
+                    className={inputClass}
+                    value={newJob.role}
+                    onChange={(e) =>
+                      setNewJob((p) => ({ ...p, role: e.target.value }))
+                    }
+                    required
+                  />
+                </label>
 
-              <select
-                className={inputClass}
-                value={newJob.status}
-                onChange={(e) =>
-                  setNewJob((p) => ({ ...p, status: e.target.value }))
-                }
-              >
-                {statuses.map((status) => (
-                  <option key={status} value={status}>
-                    {statusLabels[status]}
-                  </option>
-                ))}
-              </select>
+                <label className="block">
+                  <span className={labelClass}>Status</span>
+                  <select
+                    className={inputClass}
+                    value={newJob.status}
+                    onChange={(e) =>
+                      setNewJob((p) => ({ ...p, status: e.target.value }))
+                    }
+                  >
+                    {statuses.map((status) => (
+                      <option key={status} value={status}>
+                        {statusLabels[status]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <div className="flex items-end">
+                  <button
+                    data-testid="add-job-submit"
+                    className={`${buttonPrimaryClass} w-full`}
+                    type="submit"
+                    disabled={createJob.isPending}
+                  >
+                    {createJob.isPending ? "Adding…" : "Add Job"}
+                  </button>
+                </div>
+              </div>
+
+              {/* The remaining columns have always existed on JobApplication but
+                  had no UI. Collapsed by default so the common path stays a
+                  four-field form. */}
               <button
-                data-testid="add-job-submit"
-                className={buttonPrimaryClass}
-                type="submit"
-                disabled={createJob.isPending}
+                type="button"
+                data-testid="add-job-toggle-details"
+                className="mt-3 text-xs font-medium text-cyan-400 transition hover:text-cyan-300"
+                onClick={() => setShowJobDetails((v) => !v)}
               >
-                {createJob.isPending ? "Adding…" : "Add Job"}
+                {showJobDetails ? "− Hide details" : "+ Add details"}
               </button>
+
+              {showJobDetails ? (
+                <div className="mt-3 grid gap-2 sm:gap-3 md:grid-cols-3">
+                  <label className="block">
+                    <span className={labelClass}>Location</span>
+                    <input
+                      data-testid="add-job-location"
+                      placeholder="Remote"
+                      className={inputClass}
+                      value={newJob.location}
+                      onChange={(e) =>
+                        setNewJob((p) => ({ ...p, location: e.target.value }))
+                      }
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className={labelClass}>Salary range</span>
+                    <input
+                      data-testid="add-job-salary"
+                      placeholder="$120k – $150k"
+                      className={inputClass}
+                      value={newJob.salaryRange}
+                      onChange={(e) =>
+                        setNewJob((p) => ({ ...p, salaryRange: e.target.value }))
+                      }
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className={labelClass}>Job URL</span>
+                    <input
+                      data-testid="add-job-url"
+                      type="url"
+                      placeholder="https://…"
+                      className={inputClass}
+                      value={newJob.jobUrl}
+                      onChange={(e) =>
+                        setNewJob((p) => ({ ...p, jobUrl: e.target.value }))
+                      }
+                    />
+                  </label>
+
+                  <label className="block md:col-span-3">
+                    <span className={labelClass}>Job description</span>
+                    <textarea
+                      data-testid="add-job-description"
+                      className={`${inputClass} h-28`}
+                      value={newJob.jobDescription}
+                      onChange={(e) =>
+                        setNewJob((p) => ({
+                          ...p,
+                          jobDescription: e.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+
+                  <label className="block md:col-span-3">
+                    <span className={labelClass}>Notes</span>
+                    <textarea
+                      data-testid="add-job-notes"
+                      className={`${inputClass} h-20`}
+                      value={newJob.notes}
+                      onChange={(e) =>
+                        setNewJob((p) => ({ ...p, notes: e.target.value }))
+                      }
+                    />
+                  </label>
+                </div>
+              ) : null}
+
               {createJob.isError ? (
-                <p className="rounded-lg border border-rose-500/35 bg-rose-950/40 px-2 py-1 text-xs text-rose-200 md:col-span-4">
+                <p className="mt-3 rounded-lg border border-rose-500/35 bg-rose-950/40 px-2 py-1 text-xs text-rose-200">
                   {extractApiErrorMessage(
                     createJob.error,
                     "Could not add job. Please try again.",
@@ -280,27 +441,33 @@ export function DashboardPage() {
 
             {/* Filters — company search + status */}
             <div className={`${panelClass} flex flex-wrap items-center gap-2`}>
-              <input
-                data-testid="filter-company"
-                placeholder="Search company"
-                className={`${inputClass} min-w-0 flex-1 sm:w-64 sm:flex-none`}
-                value={companyFilter}
-                onChange={(e) => setCompanyFilter(e.target.value)}
-              />
+              <label className="min-w-0 flex-1 sm:w-64 sm:flex-none">
+                <span className="sr-only">Filter by company</span>
+                <input
+                  data-testid="filter-company"
+                  placeholder="Search company"
+                  className={inputClass}
+                  value={companyFilter}
+                  onChange={(e) => setCompanyFilter(e.target.value)}
+                />
+              </label>
 
-              <select
-                data-testid="filter-status"
-                className={`${inputClass} sm:w-44`}
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              >
-                <option value="">All statuses</option>
-                {statuses.map((status) => (
-                  <option key={status} value={status}>
-                    {statusLabels[status]}
-                  </option>
-                ))}
-              </select>
+              <label className="sm:w-44">
+                <span className="sr-only">Filter by status</span>
+                <select
+                  data-testid="filter-status"
+                  className={inputClass}
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                  <option value="">All statuses</option>
+                  {statuses.map((status) => (
+                    <option key={status} value={status}>
+                      {statusLabels[status]}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <button
                 type="button"
                 className={buttonSecondaryClass}

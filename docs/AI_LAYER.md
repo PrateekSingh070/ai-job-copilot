@@ -1,19 +1,36 @@
 # The AI layer
 
-One endpoint, `POST /ai/resume-tailor`. You paste a resume, a job description and a target role; you get back rewritten bullet points, extracted keywords, a match score out of 100, and a short explanation of the score.
+Six endpoints, all under `/ai`:
 
-The interesting part is not the prompt. It is everything wrapped around the prompt: an LLM returns free text, and this endpoint has to turn that into a response the frontend can rely on.
+| Endpoint | Input | Output |
+|---|---|---|
+| `POST /ai/resume-tailor` | Resume, job description, target role | Rewritten bullets, keywords, match score, explanation |
+| `POST /ai/cover-letter` | Resume, job, tone | A drafted letter plus a word count |
+| `POST /ai/skill-gap` | Resume, job description | Matched skills, missing skills, coverage score, suggestions |
+| `POST /ai/import-job` | A posting URL | Extracted company, role, location, description |
+| `POST /ai/chat` | A question, optional history | An answer grounded in the user's own tracked jobs |
+| `POST /ai/reindex` | — | Rebuilds embeddings for the caller's jobs |
+
+The interesting part is not the prompts. It is everything wrapped around them: an LLM
+returns free text, and each endpoint has to turn that into a response the frontend can
+rely on. Every endpoint below shares one pipeline — auth, rate limit, validate, sanitize,
+call, extract JSON, validate output — which is why the steps are documented once.
 
 ## Where the code lives
 
 | File | Responsibility |
 |---|---|
 | [client/src/components/ResumeTailor.jsx](../client/src/components/ResumeTailor.jsx) | The form and the result panel |
+| [client/src/components/PipelineChat.jsx](../client/src/components/PipelineChat.jsx) | The chat transcript, citations and reindex control |
 | [server/src/modules/ai/ai.routes.js](../server/src/modules/ai/ai.routes.js) | Auth, rate limit, input validation |
 | [server/src/modules/ai/ai.service.js](../server/src/modules/ai/ai.service.js) | Sanitizing, prompting, provider calls, output validation |
 | [server/src/modules/ai/aiTextUtils.js](../server/src/modules/ai/aiTextUtils.js) | JSON extraction and the mock's keyword scoring |
+| [server/src/modules/ai/ragIndex.js](../server/src/modules/ai/ragIndex.js) | Embedding writes and pgvector similarity search |
+| [server/src/modules/scraper/urlFetcher.js](../server/src/modules/scraper/urlFetcher.js) | SSRF-hardened outbound fetch for job import |
+| [server/src/modules/ai/aiFetch.js](../server/src/modules/ai/aiFetch.js) | Timeout, retry and error mapping for provider calls |
+| [server/src/modules/ai/embeddings.service.js](../server/src/modules/ai/embeddings.service.js) | Embedding provider plus the deterministic fallback |
 | [server/src/utils/sanitize.js](../server/src/utils/sanitize.js) | `sanitizeForAiPrompt` |
-| [server/src/shared/index.js](../server/src/shared/index.js) | `aiResumeTailorSchema`, the input contract |
+| [server/src/shared/index.js](../server/src/shared/index.js) | The Zod input contract for every endpoint |
 
 ## The request, end to end
 
@@ -180,6 +197,8 @@ The mock output goes through the same response envelope, and `model` is reported
 | `AI_PROVIDER=openai` with no key set | 400 | `OPENAI_KEY_MISSING` |
 | Provider returned 5xx or timed out | 502 | `OPENAI_API_ERROR` |
 | Provider returned unparseable JSON | 500 | `INTERNAL_SERVER_ERROR` |
+| Import URL is not HTTP(S), private, or oversized | 400 | `IMPORT_URL_BLOCKED` |
+| Import target returned non-HTML or failed to load | 400 | `IMPORT_URL_BLOCKED` |
 
 **Why is a missing key a 400 and a provider failure a 502?** A missing key is a configuration fault that is detectable before any call goes out, and retrying will never fix it. A 502 means this server acted as a gateway and the upstream it depends on failed, which is exactly what 502 is for, and retrying might work. The distinction tells the caller whether to retry.
 
@@ -211,10 +230,53 @@ Capped input at 4000 characters is roughly 1000 tokens; `AI_MAX_OUTPUT_TOKENS_RE
 
 In order: move the call to a background job with a status endpoint, since a 5-second synchronous request holds a connection open; cache by a hash of resume plus job description, because users retry the same pair repeatedly; add streaming so bullets appear as they are generated; move the rate-limit counter to Redis so it survives more than one server instance.
 
+## Retrieval: how `/ai/chat` grounds its answers
+
+Chat is the one endpoint that does not take its context from the request body. It builds
+context from the user's own tracked jobs, using pgvector.
+
+**Indexing.** `buildJobDocument` flattens a job row into labelled text
+(`Company: Acme\nRole: Frontend Engineer\n…`). Labels are kept because the query side is
+natural language — "which roles are remote" retrieves far better against `Location: Remote`
+than against a bare `Remote`. The document is hashed; if the hash matches the stored one,
+the embedding call is skipped. That matters because dragging a Kanban card rewrites
+`status`, and re-embedding on every drag would multiply the bill for no retrieval benefit.
+
+**Writes are fire-and-forget.** `POST /jobs` and `PATCH /jobs/:id` call `indexJobSafely`,
+which swallows and logs failures. An embedding provider being down must never turn "save
+my application" into an error — the row is the user's data, the embedding is derived
+convenience that `POST /ai/reindex` can always rebuild.
+
+**Search.** `searchSimilarJobs` runs a cosine-distance query (`<=>`) against an ivfflat
+index, taking the top `RAG_TOP_K` rows. The `WHERE "userId" = $1` predicate is the entire
+tenant boundary here: every other read in the app goes through `buildJobWhere`, which
+injects the user id automatically, but raw SQL bypasses that. The user id comes from the
+JWT and never from the request body.
+
+**Citations are filtered.** The model returns `citedJobIds`; any id that was not in the
+retrieved set is dropped before the response is sent, so a hallucinated citation cannot
+render as a chip pointing at a job that does not exist.
+
+**Why the vector column is raw SQL.** Prisma cannot bind `Unsupported("vector(1536)")`
+through the normal client, so both the write and the search use `$executeRaw` /
+`$queryRaw` with an explicit `::vector` cast. This is also why the in-memory `prismaMock`
+returns inert results for those two hooks — a fake cosine ranking would only test the
+fake. The real behaviour is verified against a live pgvector container instead.
+
 ## Known limitations
 
-- Only the mock path is covered by tests.
 - The rate limiter uses an in-memory store, so the limit is per-instance and resets on deploy.
-- There is no retry or timeout on the `fetch` calls. A hanging provider hangs the request.
 - Prompt injection is mitigated but not solved, as described in step 4.
-- The mock's keyword extraction has no stop-word list, so common words longer than four characters ("looking", "developer") can end up as keywords.
+- `/ai/chat` is stateless: the client replays the transcript on every turn, so a long
+  conversation grows the request body. History is capped at ten turns server-side.
+- Chat retrieval has no reranking step. Top-`k` cosine similarity is taken as-is, which is
+  adequate for a personal pipeline of tens of jobs and would not be for thousands.
+- The ivfflat index only accelerates queries once the table has data; on a nearly empty
+  table Postgres falls back to an exact scan. Correct, just not indexed.
+- SSRF protection resolves DNS and checks the address before connecting, but there is a
+  TOCTOU window: a rebinding attacker could return a public address to the check and a
+  private one to the actual connection. Closing it means pinning the resolved IP and
+  connecting to it with an explicit `Host` header.
+- Embeddings are a single vector per job. A very long job description is compressed into
+  the same 1536 dimensions as a one-line note, so long postings retrieve less precisely
+  than chunking them would.

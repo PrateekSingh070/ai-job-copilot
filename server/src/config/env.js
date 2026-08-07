@@ -35,8 +35,19 @@ const envSchema = z.object({
   ANTHROPIC_API_KEY: z.string().optional(),
   ANTHROPIC_MODEL: z.string().optional(),
   AI_MAX_INPUT_CHARS: z.coerce.number().int().positive().default(4000),
+  AI_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(20000),
+  AI_MAX_RETRIES: z.coerce.number().int().min(0).max(5).default(2),
   AI_MAX_OUTPUT_TOKENS_RESUME: z.coerce.number().int().positive().default(450),
+  AI_MAX_OUTPUT_TOKENS_LETTER: z.coerce.number().int().positive().default(900),
+  AI_MAX_OUTPUT_TOKENS_GAP: z.coerce.number().int().positive().default(600),
+  AI_MAX_OUTPUT_TOKENS_CHAT: z.coerce.number().int().positive().default(700),
+  AI_MAX_OUTPUT_TOKENS_IMPORT: z.coerce.number().int().positive().default(800),
   AI_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(8),
+  EMBEDDING_PROVIDER: z.enum(["mock", "openai"]).default("mock"),
+  EMBEDDING_MODEL: z.string().optional(),
+  IMPORT_FETCH_TIMEOUT_MS: z.coerce.number().int().positive().default(10000),
+  IMPORT_MAX_HTML_BYTES: z.coerce.number().int().positive().default(2_000_000),
+  RAG_TOP_K: z.coerce.number().int().positive().default(6),
   AUTH_RATE_LIMIT_WINDOW_MS: z.coerce
     .number()
     .int()

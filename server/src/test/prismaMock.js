@@ -17,6 +17,8 @@ export const state = {
   users: [],
   refreshTokens: [],
   jobs: [],
+  resumes: [],
+  embeddings: [],
 };
 
 let seq = 0;
@@ -26,6 +28,8 @@ export function resetState() {
   state.users = [];
   state.refreshTokens = [];
   state.jobs = [];
+  state.resumes = [];
+  state.embeddings = [];
   seq = 0;
 }
 
@@ -113,4 +117,47 @@ export const prismaMock = {
       }));
     },
   },
+  resume: {
+    findUnique: async ({ where: { userId } }) =>
+      state.resumes.find((r) => r.userId === userId) ?? null,
+    upsert: async ({ where: { userId }, create, update }) => {
+      const existing = state.resumes.find((r) => r.userId === userId);
+      if (existing) {
+        Object.assign(existing, update, { updatedAt: new Date() });
+        return existing;
+      }
+      const created = {
+        ...create,
+        id: nextId(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      state.resumes.push(created);
+      return created;
+    },
+    deleteMany: async ({ where: { userId } }) => {
+      const before = state.resumes.length;
+      state.resumes = state.resumes.filter((r) => r.userId !== userId);
+      return { count: before - state.resumes.length };
+    },
+  },
+  jobEmbedding: {
+    findUnique: async ({ where: { jobId } }) =>
+      state.embeddings.find((e) => e.jobId === jobId) ?? null,
+    count: async ({ where = {} } = {}) =>
+      state.embeddings.filter(
+        (e) => !where.userId || e.userId === where.userId,
+      ).length,
+  },
+
+  // The vector column can only be written and searched through raw SQL, which
+  // this in-memory fake cannot meaningfully emulate — a fake cosine ranking
+  // would test the fake, not pgvector. Both raw hooks are inert here, and the
+  // real behaviour is covered against a live pgvector container instead
+  // (see the RAG probe in docs/AI_LAYER.md).
+  //
+  // `$executeRaw` returning 0 keeps `indexJobSafely` on its success path, so
+  // job create/update tests exercise the real fire-and-forget call site.
+  $executeRaw: async () => 0,
+  $queryRaw: async () => [],
 };

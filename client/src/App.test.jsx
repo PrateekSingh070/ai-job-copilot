@@ -45,6 +45,14 @@ function renderApp() {
   );
 }
 
+// The login form starts empty (demo credentials are opt-in via a button, not
+// prefilled state), so every test that needs a session fills it the same way a
+// user would before submitting.
+function signIn() {
+  fireEvent.click(screen.getByTestId("login-demo"));
+  fireEvent.click(screen.getByTestId("login-submit"));
+}
+
 describe("Frontend auth + job tracker flow", () => {
   beforeEach(() => {
     // The access token is a module-level variable, so it outlives a render.
@@ -110,7 +118,7 @@ describe("Frontend auth + job tracker flow", () => {
   it("logs in and lands on the dashboard", async () => {
     renderApp();
 
-    fireEvent.click(screen.getByTestId("login-submit"));
+    signIn();
 
     expect(
       await screen.findByRole("heading", { name: /application dashboard/i }),
@@ -121,7 +129,7 @@ describe("Frontend auth + job tracker flow", () => {
   it("creates a job from the dashboard form", async () => {
     renderApp();
 
-    fireEvent.click(screen.getByTestId("login-submit"));
+    signIn();
     await screen.findByTestId("add-job-company");
 
     fireEvent.change(screen.getByTestId("add-job-company"), {
@@ -144,7 +152,7 @@ describe("Frontend auth + job tracker flow", () => {
   it("renders jobs on the kanban board and can delete one", async () => {
     renderApp();
 
-    fireEvent.click(screen.getByTestId("login-submit"));
+    signIn();
 
     const card = await screen.findByTestId("job-card");
     expect(card).toHaveTextContent("Acme");
@@ -157,7 +165,7 @@ describe("Frontend auth + job tracker flow", () => {
   it("switches to the resume tailor tab and calls the AI endpoint", async () => {
     renderApp();
 
-    fireEvent.click(screen.getByTestId("login-submit"));
+    signIn();
     await screen.findByTestId("add-job-company");
 
     fireEvent.click(screen.getByRole("button", { name: /resume tailor/i }));

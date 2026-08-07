@@ -10,3 +10,4 @@ process.env.CORS_ORIGIN = process.env.CORS_ORIGIN ?? "http://localhost:5173";
 process.env.AI_PROVIDER = "mock";
 process.env.OPENAI_API_KEY = "";
 process.env.ANTHROPIC_API_KEY = "";
+process.env.EMBEDDING_PROVIDER = "mock";

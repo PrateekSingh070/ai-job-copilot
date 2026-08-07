@@ -15,12 +15,13 @@ import {
 import { authRouter } from "./modules/auth/auth.routes.js";
 import { jobsRouter } from "./modules/jobs/jobs.routes.js";
 import { aiRouter } from "./modules/ai/ai.routes.js";
+import { resumeRouter } from "./modules/resume/resume.routes.js";
 import { ApiError, sendSuccess } from "./utils/http.js";
 
 /** Paths handled by the API — other GET requests receive the SPA shell. */
 function isApiPath(requestPath) {
   if (requestPath === "/health") return true;
-  return /^\/(auth|jobs|ai)(\/|$)/.test(requestPath);
+  return /^\/(auth|jobs|ai|resume)(\/|$)/.test(requestPath);
 }
 
 function mountClientSpa(app, staticDir) {
@@ -98,6 +99,7 @@ app.get("/health", (_req, res) =>
 app.use("/auth", authRouter);
 app.use("/jobs", jobsRouter);
 app.use("/ai", aiRouter);
+app.use("/resume", resumeRouter);
 
 if (env.NODE_ENV === "production" && env.CLIENT_STATIC_DIR) {
   mountClientSpa(app, env.CLIENT_STATIC_DIR);

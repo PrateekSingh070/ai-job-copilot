@@ -28,6 +28,7 @@ Production-ready full-stack portfolio project for freshers to track jobs and gen
    - `npm --prefix client install`
    - `npm --prefix server install`
    - `npm --prefix shared install`
+   - `npm --prefix extension install`
 3. Start Postgres (local or Docker):
    - `docker compose up -d postgres redis`
 4. Run Prisma:
@@ -65,6 +66,7 @@ Set one provider in `.env` and restart the server:
 
 The AI endpoints now send prompt templates to the selected provider and enforce structured JSON output with server-side validation.
 You can reduce spend with:
+
 - `AI_MAX_INPUT_CHARS`
 - `AI_MAX_OUTPUT_TOKENS_RESUME`
 - `AI_MAX_OUTPUT_TOKENS_COVER`
@@ -87,6 +89,12 @@ You can reduce spend with:
   - `npm run test`
 - Server tests cover auth flow, job ownership, AI response shape.
 - Client test covers login + create job flow.
+
+## Browser Extension
+
+- Build before loading unpacked extension:
+  - `npm --prefix extension run build`
+- In Chrome, use **Load unpacked** and select `extension/dist` (not `extension/src`).
 
 ## Deployment Guidance
 

@@ -9,50 +9,66 @@ import {
 } from "./aiTextUtils.js";
 import { postJsonWithRetry } from "./aiFetch.js";
 
-// Shape we require back from the model. Anything else is rejected, so callers
-// always get the same output whether it came from a provider or the mock.
+// Shape we require back from the model. The STRUCTURE (keys and types) is
+// strict; the size bounds are deliberately loose. They are guardrails against
+// a totally broken response, not quality gates — llama-class models routinely
+// write one extra bullet or a longer sentence than asked, and rejecting the
+// whole response for that turns a good answer into an error. The prompts
+// state the preferred counts; the schema only rejects the pathological.
 const resumeTailorOutputSchema = z.object({
-  rewrittenBullets: z.array(z.string().min(8)).min(3).max(8),
-  extractedKeywords: z.array(z.string().min(2)).min(5).max(20),
+  rewrittenBullets: z.array(z.string().min(2)).min(1).max(20),
+  extractedKeywords: z.array(z.string().min(1)).min(1).max(40),
   matchScore: z.number().int().min(0).max(100),
-  explanation: z.string().min(15),
+  explanation: z.string().min(1),
 });
 
+// Bounds here are guardrails against a totally broken response, not quality
+// gates. Llama-class models often emit the greeting ("Dear Hiring Team,") as
+// its own short array item and more key points than asked, so the limits are
+// deliberately loose — the prompt states the preferred shape, and a mild
+// deviation (a standalone greeting line, 7 key points) still renders fine.
 const coverLetterOutputSchema = z.object({
-  letterBody: z.array(z.string().min(20)).min(3).max(5),
-  subjectLine: z.string().min(10).max(120),
-  wordCount: z.number().int().min(50),
-  keyPointsUsed: z.array(z.string().min(5)).min(2).max(6),
+  letterBody: z.array(z.string().min(2)).min(1).max(12),
+  subjectLine: z.string().min(5).max(200),
+  wordCount: z.number().int().min(1),
+  keyPointsUsed: z.array(z.string().min(2)).min(1).max(15),
 });
 
 const skillGapOutputSchema = z.object({
   missingSkills: z
     .array(
       z.object({
-        skill: z.string().min(2).max(80),
-        importance: z.enum(["critical", "nice-to-have"]),
-        whyItMatters: z.string().min(10).max(300),
-        howToClose: z.string().min(10).max(300),
+        skill: z.string().min(1).max(200),
+        // Fold whatever casing/wording the model chose onto the two values
+        // the UI understands, instead of failing the whole response over
+        // "Critical" vs "critical".
+        importance: z
+          .string()
+          .transform((v) =>
+            v.toLowerCase().includes("critical") ? "critical" : "nice-to-have",
+          ),
+        whyItMatters: z.string().min(1).max(1000),
+        howToClose: z.string().min(1).max(1000),
       }),
     )
     .min(0)
-    .max(12),
-  presentSkills: z.array(z.string().min(2).max(80)).min(0).max(20),
+    .max(30),
+  presentSkills: z.array(z.string().min(1).max(200)).min(0).max(50),
   overallReadiness: z.number().int().min(0).max(100),
 });
 
 const importJobOutputSchema = z.object({
-  company: z.string().min(1).max(120),
-  role: z.string().min(1).max(120),
-  location: z.string().max(120).optional(),
-  salaryRange: z.string().max(80).optional(),
-  jobDescription: z.string().min(1).max(10000),
+  company: z.string().min(1).max(200),
+  role: z.string().min(1).max(200),
+  location: z.string().max(200).optional(),
+  salaryRange: z.string().max(160).optional(),
+  jobDescription: z.string().min(1).max(20000),
   confidence: z.number().int().min(0).max(100),
 });
 
 const chatOutputSchema = z.object({
-  answer: z.string().min(1).max(4000),
-  citedJobIds: z.array(z.string()).max(10).default([]),
+  answer: z.string().min(1).max(10000),
+  citedJobIds: z.array(z.string()).max(50).default([]),
 });
 
 function clampText(input) {
@@ -61,8 +77,35 @@ function clampText(input) {
 
 // Providers return JSON as text, sometimes wrapped in prose or a code fence,
 // so pull out the first JSON object and validate it against the schema.
+//
+// A parse/validation failure here is the PROVIDER's fault, not the caller's,
+// so it must not surface as a 400 VALIDATION_ERROR ("Invalid request input")
+// — the errorHandler would otherwise blame the user for the model's output.
 function parseProviderJson(text, outputSchema) {
-  return outputSchema.parse(JSON.parse(extractFirstJsonObject(text)));
+  let parsed;
+  try {
+    parsed = JSON.parse(extractFirstJsonObject(text));
+  } catch {
+    throw new ApiError(
+      502,
+      "AI_MALFORMED_OUTPUT",
+      "The AI returned an unexpected format. Please try again.",
+      { reason: "response was not valid JSON" },
+    );
+  }
+  const result = outputSchema.safeParse(parsed);
+  if (!result.success) {
+    // The zod issues say exactly which key the model got wrong — invaluable
+    // when a new model misbehaves, and safe to expose (it describes the
+    // model's output shape, not our internals or the user's data).
+    throw new ApiError(
+      502,
+      "AI_MALFORMED_OUTPUT",
+      "The AI returned an unexpected format. Please try again.",
+      { issues: result.error.issues },
+    );
+  }
+  return result.data;
 }
 
 async function callOpenAiJson(params) {
@@ -319,7 +362,7 @@ ${safeInput.jobDescription}
 
 Output JSON shape:
 {
-  "letterBody": ["3 to 5 paragraphs; open with the greeting, close with a sign-off line"],
+  "letterBody": ["3 to 5 paragraph strings. Start the FIRST paragraph with the greeting and end the LAST paragraph with the sign-off — do not make the greeting or sign-off separate array items."],
   "subjectLine": "email subject line for the application",
   "wordCount": integer total word count of letterBody,
   "keyPointsUsed": ["2 to 6 concrete resume points or keywords you drew on"]
@@ -385,19 +428,20 @@ ${safeInput.resumeText}
 Job description:
 ${safeInput.jobDescription}
 
-Output JSON shape:
+Output JSON shape — ALL three top-level keys are required:
 {
+  "overallReadiness": 0-100 integer score,
+  "presentSkills": ["skills the candidate already has"],
   "missingSkills": [
     {
       "skill": "name of the skill",
       "importance": "critical" or "nice-to-have",
-      "whyItMatters": "one sentence: why this skill matters for the role",
-      "howToClose": "one sentence: specific action to build this skill"
+      "whyItMatters": "one SHORT sentence: why this skill matters for the role",
+      "howToClose": "one SHORT sentence: specific action to build this skill"
     }
-  ],
-  "presentSkills": ["skills the candidate already has"],
-  "overallReadiness": 0-100 integer score
+  ]
 }
+List at most 6 missing skills. Keep every sentence short so the JSON stays compact.
 `.trim();
 
   return callProviderJson({

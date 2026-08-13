@@ -39,11 +39,27 @@ const envSchema = z.object({
   AI_MAX_INPUT_CHARS: z.coerce.number().int().positive().default(4000),
   AI_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(20000),
   AI_MAX_RETRIES: z.coerce.number().int().min(0).max(5).default(2),
-  AI_MAX_OUTPUT_TOKENS_RESUME: z.coerce.number().int().positive().default(450),
-  AI_MAX_OUTPUT_TOKENS_LETTER: z.coerce.number().int().positive().default(900),
-  AI_MAX_OUTPUT_TOKENS_GAP: z.coerce.number().int().positive().default(600),
-  AI_MAX_OUTPUT_TOKENS_CHAT: z.coerce.number().int().positive().default(700),
-  AI_MAX_OUTPUT_TOKENS_IMPORT: z.coerce.number().int().positive().default(800),
+  // Generous by default: a truncated response is worse than a longer one,
+  // because cut-off JSON fails output validation and the whole request errors.
+  // Llama-class models in particular write more tokens than GPT-4o-mini for
+  // the same ask, and the original tighter budgets truncated them regularly.
+  AI_MAX_OUTPUT_TOKENS_RESUME: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(1200),
+  AI_MAX_OUTPUT_TOKENS_LETTER: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(1500),
+  AI_MAX_OUTPUT_TOKENS_GAP: z.coerce.number().int().positive().default(1500),
+  AI_MAX_OUTPUT_TOKENS_CHAT: z.coerce.number().int().positive().default(1200),
+  AI_MAX_OUTPUT_TOKENS_IMPORT: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(1500),
   AI_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(8),
   EMBEDDING_PROVIDER: z.enum(["mock", "openai"]).default("mock"),
   EMBEDDING_MODEL: z.string().optional(),

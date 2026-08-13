@@ -24,7 +24,13 @@ export function ResumeProfile() {
   });
 
   const saveResume = useMutation({
-    mutationFn: async () => api.put("/resume", { title, content }),
+    // Omit title when blank: the server schema treats title as optional but
+    // non-empty, so sending "" fails validation while sending nothing is fine.
+    mutationFn: async () =>
+      api.put("/resume", {
+        ...(title.trim() ? { title: title.trim() } : {}),
+        content,
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["resume"] });
     },

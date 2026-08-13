@@ -103,6 +103,37 @@ describe("Auth flow", () => {
     }
   });
 
+  // Reuse detection: presenting an already-rotated token means it leaked, so
+  // the server revokes the user's entire token family — the thief's newer
+  // token must die along with the replayed one.
+  it("revokes the whole token family when a rotated token is replayed", async () => {
+    const registerRes = await request(app).post("/auth/register").send({
+      name: "Family User",
+      email: "family@example.com",
+      password: "Password123!",
+    });
+    const oldCookie = registerRes.headers["set-cookie"][0];
+
+    // Rotate once: oldCookie is now revoked, newCookie is the live token.
+    const rotateRes = await request(app)
+      .post("/auth/refresh")
+      .set("Cookie", oldCookie);
+    expect(rotateRes.status).toBe(200);
+    const newCookie = rotateRes.headers["set-cookie"][0];
+
+    // Replay the old token — must fail AND poison the family.
+    const replayRes = await request(app)
+      .post("/auth/refresh")
+      .set("Cookie", oldCookie);
+    expect(replayRes.status).toBe(401);
+
+    // The otherwise-valid new token is now dead too.
+    const afterRes = await request(app)
+      .post("/auth/refresh")
+      .set("Cookie", newCookie);
+    expect(afterRes.status).toBe(401);
+  });
+
   it("rejects invalid register input", async () => {
     const res = await request(app)
       .post("/auth/register")

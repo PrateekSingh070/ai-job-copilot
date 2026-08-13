@@ -62,15 +62,34 @@ export const prismaMock = {
       Object.assign(token, data);
       return token;
     },
-    updateMany: async ({ where: { tokenHash }, data }) => {
+    // Supports the conditional shapes auth.service uses: tokenHash claims
+    // ({ tokenHash, revoked, expiresAt: { gt } }) and family revocation
+    // ({ userId, revoked }).
+    updateMany: async ({ where, data }) => {
       let count = 0;
       state.refreshTokens.forEach((token) => {
-        if (token.tokenHash === tokenHash) {
-          Object.assign(token, data);
-          count += 1;
-        }
+        if (where.tokenHash !== undefined && token.tokenHash !== where.tokenHash)
+          return;
+        if (where.userId !== undefined && token.userId !== where.userId) return;
+        if (where.revoked !== undefined && token.revoked !== where.revoked)
+          return;
+        if (where.expiresAt?.gt && !(token.expiresAt > where.expiresAt.gt))
+          return;
+        Object.assign(token, data);
+        count += 1;
       });
       return { count };
+    },
+    deleteMany: async ({ where }) => {
+      const before = state.refreshTokens.length;
+      state.refreshTokens = state.refreshTokens.filter((token) => {
+        if (where.userId !== undefined && token.userId !== where.userId)
+          return true;
+        if (where.expiresAt?.lt && !(token.expiresAt < where.expiresAt.lt))
+          return true;
+        return false;
+      });
+      return { count: before - state.refreshTokens.length };
     },
   },
   jobApplication: {

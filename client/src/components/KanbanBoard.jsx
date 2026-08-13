@@ -75,10 +75,32 @@ export function KanbanBoard({ jobs, onMove, onDelete }) {
                   <div className="mt-2.5 flex items-center gap-1 text-[11px] text-zinc-500">
                     <CalendarIcon className="h-3 w-3" />
                     {new Date(job.updatedAt).toLocaleDateString()}
+                    {/* Keyboard-accessible alternative to drag-and-drop:
+                        HTML5 DnD is mouse-only, so without this a keyboard or
+                        screen-reader user cannot move a card at all. */}
+                    <select
+                      aria-label={`Move ${job.company} to another column`}
+                      className="ml-auto max-w-[5.5rem] cursor-pointer rounded-md border border-zinc-800 bg-zinc-900 px-1 py-0.5 text-[11px] text-zinc-400 transition hover:border-zinc-700"
+                      value=""
+                      onChange={(e) => {
+                        if (e.target.value) onMove(job.id, e.target.value);
+                      }}
+                    >
+                      <option value="" disabled>
+                        Move to…
+                      </option>
+                      {statuses
+                        .filter((s) => s !== status)
+                        .map((s) => (
+                          <option key={s} value={s}>
+                            {statusLabels[s]}
+                          </option>
+                        ))}
+                    </select>
                     <button
                       type="button"
                       aria-label={`Delete ${job.company}`}
-                      className="ml-auto flex items-center gap-1 font-medium text-zinc-600 transition hover:text-rose-400"
+                      className="flex items-center gap-1 font-medium text-zinc-600 transition hover:text-rose-400"
                       onClick={() => onDelete(job.id)}
                     >
                       <TrashIcon className="h-3 w-3" />

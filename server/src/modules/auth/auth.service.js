@@ -60,6 +60,16 @@ export async function loginUser(input) {
     throw new ApiError(401, "INVALID_CREDENTIALS", "Invalid email or password");
   }
 
+  // Opportunistic cleanup: expired rows are dead weight — they can never be
+  // rotated and reuse detection only needs revoked-but-unexpired rows. Doing
+  // it on login keeps the table bounded without needing a cron job.
+  // Fire-and-forget so a slow delete never delays the login response.
+  void prisma.refreshToken
+    .deleteMany({
+      where: { userId: user.id, expiresAt: { lt: new Date() } },
+    })
+    .catch(() => {});
+
   const tokens = await issueTokenPair(user.id, user.email);
   return {
     user: { id: user.id, name: user.name, email: user.email },
@@ -80,14 +90,32 @@ export async function rotateRefreshToken(currentRefreshToken) {
   }
   const tokenHash = hashToken(currentRefreshToken);
 
-  const storedToken = await prisma.refreshToken.findUnique({
-    where: { tokenHash },
+  // Atomically claim the token: flipping `revoked` false→true in a single
+  // conditional update means exactly one of any concurrent refreshes wins.
+  // The old check-then-update pair had a race where two requests could both
+  // read revoked=false and both rotate.
+  const claimed = await prisma.refreshToken.updateMany({
+    where: { tokenHash, revoked: false, expiresAt: { gt: new Date() } },
+    data: { revoked: true },
   });
-  if (
-    !storedToken ||
-    storedToken.revoked ||
-    storedToken.expiresAt < new Date()
-  ) {
+
+  if (claimed.count === 0) {
+    // The claim failed. If the row exists and is already revoked, this token
+    // was rotated before and is now being replayed — either the user's copy
+    // or a thief's. We can't tell which side is the attacker, so revoke the
+    // whole family: every live token for this user dies and both sides must
+    // log in again. This is what makes `replacedBy` reuse detection
+    // actionable rather than just recorded.
+    const storedToken = await prisma.refreshToken.findUnique({
+      where: { tokenHash },
+      select: { userId: true, revoked: true },
+    });
+    if (storedToken?.revoked) {
+      await prisma.refreshToken.updateMany({
+        where: { userId: storedToken.userId, revoked: false },
+        data: { revoked: true },
+      });
+    }
     throw new ApiError(
       401,
       "INVALID_REFRESH_TOKEN",
@@ -95,13 +123,13 @@ export async function rotateRefreshToken(currentRefreshToken) {
     );
   }
 
+  // Revoke-then-issue, not issue-then-revoke: if we crash between the two
+  // steps the user re-logs-in (annoying but safe) instead of two refresh
+  // tokens being valid at once.
   const newTokens = await issueTokenPair(payload.sub, payload.email);
-  await prisma.refreshToken.update({
-    where: { id: storedToken.id },
-    data: {
-      revoked: true,
-      replacedBy: hashToken(newTokens.refreshToken),
-    },
+  await prisma.refreshToken.updateMany({
+    where: { tokenHash },
+    data: { replacedBy: hashToken(newTokens.refreshToken) },
   });
 
   return newTokens;

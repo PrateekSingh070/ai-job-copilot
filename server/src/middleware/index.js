@@ -1,4 +1,5 @@
 import { nanoid } from "nanoid";
+import * as Sentry from "@sentry/node";
 import { rateLimit } from "express-rate-limit";
 import { ZodError } from "zod";
 import { env } from "../config/env.js";
@@ -90,5 +91,13 @@ export function errorHandler(err, req, res, _next) {
   }
 
   console.error(`[${req.requestId}]`, err);
+  // Ship the unexpected 500s to Sentry. Expected errors (ApiError, ZodError)
+  // returned above are user-facing outcomes, not defects, so they stay out.
+  // captureException is a no-op when Sentry.init was never called (no DSN),
+  // so this is safe in development and tests.
+  Sentry.captureException(err, {
+    tags: { requestId: req.requestId },
+    extra: { method: req.method, path: req.path },
+  });
   return sendError(res, 500, "INTERNAL_SERVER_ERROR", "Something went wrong");
 }

@@ -170,7 +170,8 @@ describe("Frontend auth + job tracker flow", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /resume tailor/i }));
 
-    fireEvent.change(screen.getByTestId("tailor-role"), {
+    // The AI panels are code-split, so the tab's content loads async.
+    fireEvent.change(await screen.findByTestId("tailor-role"), {
       target: { value: "Full Stack Engineer" },
     });
     fireEvent.change(screen.getByTestId("tailor-resume"), {

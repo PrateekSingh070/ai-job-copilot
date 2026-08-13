@@ -74,6 +74,29 @@ describe("AI provider paths", () => {
     expect(result.output.rewrittenBullets).toHaveLength(3);
   });
 
+  it("calls Groq's OpenAI-compatible endpoint with JSON mode", async () => {
+    process.env.AI_PROVIDER = "groq";
+    process.env.GROQ_API_KEY = "test-groq-key";
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(openAiReply(JSON.stringify(validOutput)));
+    globalThis.fetch = fetchMock;
+
+    const { generateResumeTailor } = await import("./ai.service.js");
+    const result = await generateResumeTailor(input);
+
+    expect(result.model).toBe("llama-3.3-70b-versatile");
+    expect(result.output.matchScore).toBe(78);
+
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe("https://api.groq.com/openai/v1/chat/completions");
+    expect(options.headers.Authorization).toBe("Bearer test-groq-key");
+    const body = JSON.parse(options.body);
+    expect(body.response_format).toEqual({ type: "json_object" });
+
+    delete process.env.GROQ_API_KEY;
+  });
+
   it("parses JSON wrapped in a markdown fence", async () => {
     globalThis.fetch = vi
       .fn()

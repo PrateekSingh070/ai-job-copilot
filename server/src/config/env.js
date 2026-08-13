@@ -29,7 +29,9 @@ const envSchema = z.object({
   CORS_ORIGIN: z
     .string()
     .default("http://localhost:5173,http://localhost:5174"),
-  AI_PROVIDER: z.enum(["mock", "openai", "anthropic"]).default("mock"),
+  AI_PROVIDER: z.enum(["mock", "openai", "anthropic", "groq"]).default("mock"),
+  GROQ_API_KEY: z.string().optional(),
+  GROQ_MODEL: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_MODEL: z.string().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),

@@ -26,14 +26,18 @@ const router = Router();
 
 router.use(requireAuth);
 
-// AI calls cost money and time, so they get a tighter per-IP limit than the
-// rest of the API.
+// AI calls cost money and time, so they get a tighter limit than the rest of
+// the API — keyed by user id, not IP. requireAuth has already run, so
+// req.user is always set here. Per-IP would both under-limit (one user
+// rotating IPs burns unlimited quota) and over-limit (an office NAT shares
+// one counter across everyone).
 router.use(
   rateLimit({
     windowMs: 60 * 1000,
     limit: env.AI_RATE_LIMIT_PER_MINUTE,
     standardHeaders: true,
     legacyHeaders: false,
+    keyGenerator: (req) => req.user.sub,
     handler: (req, res) =>
       sendError(
         res,
@@ -93,6 +97,7 @@ const importLimiter = rateLimit({
   limit: 4,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => req.user.sub,
   // Disabled in tests so suites stay independent, matching
   // `authCredentialsLimiter` in middleware/index.js. A 4/min ceiling would
   // otherwise make test order significant.

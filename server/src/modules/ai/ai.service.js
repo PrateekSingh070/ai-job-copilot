@@ -94,6 +94,40 @@ async function callOpenAiJson(params) {
   };
 }
 
+// Groq exposes an OpenAI-compatible chat completions API, so this mirrors
+// callOpenAiJson with a different base URL, key and default model.
+async function callGroqJson(params) {
+  if (!env.GROQ_API_KEY) {
+    throw new ApiError(400, "GROQ_KEY_MISSING", "GROQ_API_KEY is required");
+  }
+
+  const model = env.GROQ_MODEL ?? "llama-3.3-70b-versatile";
+  const data = await postJsonWithRetry({
+    url: "https://api.groq.com/openai/v1/chat/completions",
+    headers: { Authorization: `Bearer ${env.GROQ_API_KEY}` },
+    body: {
+      model,
+      temperature: 0.4,
+      max_tokens: params.maxTokens,
+      // Groq supports OpenAI's JSON mode, which hard-guarantees parseable
+      // output instead of relying on the prompt alone.
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: params.systemPrompt },
+        { role: "user", content: params.userPrompt },
+      ],
+    },
+    errorCode: "GROQ_API_ERROR",
+    label: "Groq",
+  });
+
+  const text = data.choices?.[0]?.message?.content ?? "";
+  return {
+    output: parseProviderJson(text, params.outputSchema),
+    model,
+  };
+}
+
 async function callAnthropicJson(params) {
   if (!env.ANTHROPIC_API_KEY) {
     throw new ApiError(
@@ -135,6 +169,7 @@ async function callAnthropicJson(params) {
 /** Picks the provider from AI_PROVIDER. `mock` never reaches this function. */
 async function callProviderJson(params) {
   if (env.AI_PROVIDER === "openai") return callOpenAiJson(params);
+  if (env.AI_PROVIDER === "groq") return callGroqJson(params);
   return callAnthropicJson(params);
 }
 

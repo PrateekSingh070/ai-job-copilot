@@ -1,5 +1,7 @@
 import dns from "node:dns/promises";
+import dnsCallback from "node:dns";
 import net from "node:net";
+import { Agent } from "undici";
 import { ApiError } from "../../utils/http.js";
 import { env } from "../../config/env.js";
 
@@ -106,14 +108,40 @@ function isBlockedHostname(hostname) {
 }
 
 /**
+ * DNS lookup that re-validates every address *at connect time*. This closes
+ * the TOCTOU gap left by `assertPublicUrl`: that check resolves once, but the
+ * socket resolves again, and a DNS-rebinding attacker with a short-TTL record
+ * could answer the second lookup with a private IP. Injecting this lookup
+ * into the agent means the address the socket actually dials is the address
+ * that was validated — there is no second, unchecked resolution.
+ */
+function guardedLookup(hostname, options, callback) {
+  dnsCallback.lookup(hostname, { ...options, all: true }, (err, addresses) => {
+    if (err) {
+      callback(err);
+      return;
+    }
+    if (
+      addresses.length === 0 ||
+      addresses.some((entry) => isBlockedAddress(entry.address))
+    ) {
+      callback(Object.assign(new Error("Blocked address"), { code: "EBLOCKED" }));
+      return;
+    }
+    if (options.all) callback(null, addresses);
+    else callback(null, addresses[0].address, addresses[0].family);
+  });
+}
+
+/** Dispatcher whose sockets can only ever connect to public addresses. */
+const publicOnlyAgent = new Agent({ connect: { lookup: guardedLookup } });
+
+/**
  * Validate one URL: scheme, hostname, and every address it resolves to.
  *
- * Known limitation: this is a TOCTOU check. We resolve here, then `fetch`
- * resolves again, so a DNS-rebinding attacker controlling a short-TTL record
- * could return a public IP to us and a private one to fetch. Closing that
- * properly means pinning the resolved IP and connecting to it with a custom
- * agent plus a Host header. Documented rather than fixed — it needs a
- * dispatcher rewrite, and the rebind window is narrow for this use case.
+ * This is the fast first-line check (scheme, hostname denylist, IP literals).
+ * The rebinding-proof enforcement is `guardedLookup` above, which runs again
+ * inside the socket connect itself.
  */
 async function assertPublicUrl(rawUrl) {
   let url;
@@ -194,6 +222,7 @@ export async function fetchJobPage(rawUrl) {
     try {
       response = await fetch(url, {
         redirect: "manual",
+        dispatcher: publicOnlyAgent,
         signal: AbortSignal.timeout(env.IMPORT_FETCH_TIMEOUT_MS),
         headers: {
           "User-Agent": "JobCopilotBot/1.0 (+job posting import)",

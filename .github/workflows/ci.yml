@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint server
+        run: npm run lint --prefix server
+
+      - name: Lint client
+        run: npm run lint --prefix client
+
+      # The server suite runs against an in-memory Prisma stand-in and the
+      # mock AI provider, so no database or API keys are needed here.
+      - name: Test server
+        run: npm test --prefix server
+
+      - name: Test client
+        run: npm test --prefix client
+
+      - name: Build client
+        run: npm run build --prefix client

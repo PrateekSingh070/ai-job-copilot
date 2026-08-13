@@ -1,9 +1,10 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npx prisma generate && npx prisma migrate deploy && npx prisma db seed",
-  "functions": {
-    "src/index.js": {
-      "maxDuration": 60
-    }
-  }
+    "$schema": "https://openapi.vercel.sh/vercel.json",
+    "buildCommand": "npx prisma generate && npx prisma migrate deploy && npx prisma db seed",
+    "functions": {
+          "api/index.js": {
+                  "maxDuration": 60
+          }
+    },
+    "rewrites": [{ "source": "/(.*)", "destination": "/api/index" }]
 }

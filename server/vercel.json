@@ -1,6 +1,6 @@
 {
     "$schema": "https://openapi.vercel.sh/vercel.json",
-    "buildCommand": "npx prisma generate && npx prisma migrate deploy && npx prisma db seed",
+        "buildCommand": "npx prisma generate",
     "functions": {
           "api/index.js": {
                   "maxDuration": 60
